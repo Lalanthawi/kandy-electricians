@@ -29,6 +29,7 @@ const Loginpage = () => {
           </form>
 
           <Mainbutton name="Login" />
+          <h3> New User? Register Here. </h3>
         </div>
       </div>
     </>
