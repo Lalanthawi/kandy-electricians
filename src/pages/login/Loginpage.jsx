@@ -1,39 +1,154 @@
-import Mainbutton from "../../components/Mainbutton";
-import Logo from "../../assets/logo.png";
+// Login.jsx
+import { useState } from "react";
+import logo from "../../assets/logo.png"; // Update path if needed
+import "./Login.css";
 
-const Loginpage = () => {
+const Login = () => {
+  // Form state
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  // Error state
+  const [errors, setErrors] = useState({});
+
+  // Loading state
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Handle input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear error when user types
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Email validation
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Email is invalid";
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validate
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // TODO: Replace with your API call
+      console.log("Login data:", formData);
+
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // TODO: Handle successful login
+      // - Store token
+      // - Redirect to dashboard based on role
+
+      alert("Login successful! (Replace this with navigation)");
+    } catch (error) {
+      console.error("Login error:", error);
+      setErrors({
+        general: "Login failed. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <>
-      <div className="flex h-screen w-screen justify-center items-center">
-        <div className="flex flex-col gap-2 bg-orange-100 h-1/2 w-1/4 justify-evenly items-center p-10">
-          <img src={Logo} height="10px" width={100}></img>
-          <h2 className="flex flex-col">
-            {" "}
-            Welcome to Kandy Electricians{" "}
-            <span> Please Sign In To Your Account </span>
-          </h2>
+    <div className="login-container">
+      <div className="login-box">
+        {/* Logo */}
+        <img src={logo} alt="Logo" className="logo" />
 
-          <form
-            className="flex flex-col justify-between gap-4"
-            action="submit"
-            type="post"
-          >
-            <div className="">
-              {" "}
-              <label>Email</label> <input type="email"></input>
-            </div>
-            <div>
-              {" "}
-              <label>Password </label> <input type="password"></input>
-            </div>
-          </form>
+        {/* Title */}
+        <h1 className="title">Welcome Back</h1>
+        <p className="subtitle">Please login to your account</p>
 
-          <Mainbutton name="Login" />
-          <h3> New User? Register Here. </h3>
-        </div>
+        {/* Error Message */}
+        {errors.general && (
+          <div className="error-message">{errors.general}</div>
+        )}
+
+        {/* Login Form */}
+        <form onSubmit={handleSubmit}>
+          {/* Email Field */}
+          <div className="form-field">
+            <label>Email</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Enter your email"
+              className={errors.email ? "error" : ""}
+            />
+            {errors.email && (
+              <span className="field-error">{errors.email}</span>
+            )}
+          </div>
+
+          {/* Password Field */}
+          <div className="form-field">
+            <label>Password</label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Enter your password"
+              className={errors.password ? "error" : ""}
+            />
+            {errors.password && (
+              <span className="field-error">{errors.password}</span>
+            )}
+          </div>
+
+          {/* Submit Button */}
+          <button type="submit" className="submit-button" disabled={isLoading}>
+            {isLoading ? "Logging in..." : "Login"}
+          </button>
+        </form>
+
+        {/* Footer Link */}
+        <p className="footer-text">
+          Don&apos;t have an account?
+          <a href="mailto:admin@company.com"> Contact Admin</a>
+        </p>
       </div>
-    </>
+    </div>
   );
 };
 
-export default Loginpage;
+export default Login;

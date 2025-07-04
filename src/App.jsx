@@ -1,10 +1,13 @@
 import "./App.css";
-import Loginpage from "./pages/login/loginpage";
+import AdminDashboard from "./pages/admin/admindashboard";
+import ElectricianDashboard from "./pages/electrician/electriciandashboard";
+import Login from "./pages/login/Loginpage";
+import ManagerDashboard from "./pages/manager/managerdashboard";
 
 function App() {
   return (
     <>
-      <Loginpage />
+      <Login />
     </>
   );
 }
