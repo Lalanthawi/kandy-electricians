@@ -214,6 +214,7 @@ body {
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 10px;
+  display: none;
 }
 
 .quick-task-btn {
@@ -789,11 +790,16 @@ body {
 }
 
 .report-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: var(--bg-color);
   padding: 25px;
   border-radius: 10px;
   text-align: center;
   transition: all 0.3s;
+  width: 20rem;
 }
 
 .report-card:hover {
@@ -818,7 +824,7 @@ body {
 }
 
 .generate-btn {
-  padding: 10px 20px;
+  padding: px 20px;
   background: var(--primary-color);
   color: white;
   border: none;
@@ -1141,4 +1147,61 @@ form {
   .action-buttons button {
     width: 100%;
   }
+}
+.tasks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.task-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.task-card-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.task-info p {
+  margin: 8px 0;
+  color: #666;
+}
+
+.task-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 15px 0;
+}
+
+.assigned-to {
+  font-size: 14px;
+  color: #666;
+}
+
+.task-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.btn-reassign {
+  background: #f39c12;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
 }

@@ -1,265 +1,376 @@
 // ElectricianDashboard.jsx
 import { useState, useEffect } from "react";
 import "./ElectricianDashboard.css";
+import { useNavigate } from "react-router-dom";
+
+// API configuration
+const API_URL = "http://localhost:5001/api";
+
+// Get token from localStorage
+const getToken = () => localStorage.getItem("token");
+
+// API request helper
+const apiRequest = async (endpoint, options = {}) => {
+  const token = getToken();
+
+  const config = {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  };
+
+  const response = await fetch(`${API_URL}${endpoint}`, config);
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+    }
+    throw new Error("API request failed");
+  }
+
+  return response.json();
+};
 
 const ElectricianDashboard = () => {
+  const navigate = useNavigate();
+
   // State management
   const [activeView, setActiveView] = useState("today");
   const [selectedTask, setSelectedTask] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // User info (would come from auth/context in real app)
-  const [userInfo] = useState({
-    name: "John Smith",
-    id: "ELC001",
-    email: "john.smith@company.com",
-    phone: "+94 77 123 4567",
-    rating: 4.8,
-    joinDate: "2023-05-15",
-  });
+  // Get user info from localStorage
+  const userInfo = JSON.parse(localStorage.getItem("user") || "{}");
 
-  // Dashboard statistics
+  // Dashboard statistics from API
   const [stats, setStats] = useState({
-    todayTasks: 5,
-    completedToday: 2,
-    inProgress: 1,
-    totalCompleted: 145,
-    thisWeek: 18,
-    thisMonth: 72,
-    avgRating: 4.8,
-    onTimeRate: 96,
+    todayTasks: 0,
+    completedToday: 0,
+    inProgress: 0,
+    pendingToday: 0,
+    totalCompleted: 0,
+    thisMonth: 0,
+    completedThisMonth: 0,
+    avgRating: 0,
+    onTimeRate: 0,
   });
 
-  // Today's tasks
-  const [todayTasks, setTodayTasks] = useState([
-    {
-      id: "T001",
-      title: "Fix electrical outlet - Main Office",
-      customer: "ABC Company Ltd",
-      address: "123 Galle Road, Kandy",
-      phone: "+94 77 987 6543",
-      priority: "High",
-      status: "Pending",
-      scheduledTime: "09:00 AM - 11:00 AM",
-      estimatedHours: 2,
-      description:
-        "Multiple outlets not working in the main office area. Need to check wiring and replace faulty outlets.",
-      materials: ["Outlets x3", "Wire nuts", "Electrical tape"],
-    },
-    {
-      id: "T003",
-      title: "Emergency repair - Power outage",
-      customer: "Residence - Mr. Silva",
-      address: "78 Temple Street, Kandy",
-      phone: "+94 77 456 7890",
-      priority: "High",
-      status: "In Progress",
-      scheduledTime: "11:30 AM - 01:00 PM",
-      estimatedHours: 1.5,
-      startTime: "11:45 AM",
-      description:
-        "Complete power outage in residential building. Suspected main breaker issue.",
-      materials: ["Circuit breaker", "Testing equipment"],
-    },
-    {
-      id: "T005",
-      title: "Install new ceiling fan",
-      customer: "Ms. Perera",
-      address: "45 Lake Road, Kandy",
-      phone: "+94 77 234 5678",
-      priority: "Medium",
-      status: "Completed",
-      scheduledTime: "02:00 PM - 03:30 PM",
-      estimatedHours: 1.5,
-      completedTime: "03:15 PM",
-      description:
-        "Install ceiling fan in master bedroom. Customer has already purchased the fan.",
-      materials: ["Mounting bracket", "Wire connectors"],
-      rating: 5,
-      feedback: "Excellent work! Very professional.",
-    },
-    {
-      id: "T007",
-      title: "Routine maintenance check",
-      customer: "Green Gardens Hotel",
-      address: "10 Hotel Street, Kandy",
-      phone: "+94 77 345 6789",
-      priority: "Low",
-      status: "Pending",
-      scheduledTime: "04:00 PM - 06:00 PM",
-      estimatedHours: 2,
-      description:
-        "Monthly electrical system maintenance. Check all main panels and emergency lighting.",
-      materials: ["Testing equipment", "Replacement bulbs"],
-    },
-    {
-      id: "T008",
-      title: "Fix outdoor lighting",
-      customer: "City Mall",
-      address: "55 Main Street, Kandy",
-      phone: "+94 77 567 8901",
-      priority: "Medium",
-      status: "Completed",
-      scheduledTime: "07:00 AM - 08:30 AM",
-      estimatedHours: 1.5,
-      completedTime: "08:15 AM",
-      description: "Repair outdoor security lighting in parking area.",
-      materials: ["LED bulbs x4", "Photocell sensor"],
-      rating: 4,
-      feedback: "Good service, arrived on time.",
-    },
-  ]);
+  // Tasks from API
+  const [todayTasks, setTodayTasks] = useState([]);
+  const [taskHistory, setTaskHistory] = useState([]);
 
-  // Task history
-  const [taskHistory, setTaskHistory] = useState([
-    {
-      id: "T100",
-      date: "2024-01-14",
-      title: "Install power outlets",
-      customer: "Tech Solutions Ltd",
-      status: "Completed",
-      rating: 5,
-      earnings: 8500,
-    },
-    {
-      id: "T099",
-      date: "2024-01-14",
-      title: "Emergency repair",
-      customer: "Mr. Fernando",
-      status: "Completed",
-      rating: 5,
-      earnings: 5500,
-    },
-    {
-      id: "T098",
-      date: "2024-01-13",
-      title: "LED lighting upgrade",
-      customer: "Sunshine Restaurant",
-      status: "Completed",
-      rating: 4,
-      earnings: 12000,
-    },
-    {
-      id: "T097",
-      date: "2024-01-13",
-      title: "Fix circuit breaker",
-      customer: "Ms. Jayawardena",
-      status: "Completed",
-      rating: 5,
-      earnings: 3500,
-    },
-  ]);
+  // Notifications from API
+  const [notifications, setNotifications] = useState([]);
 
-  // Notifications
-  const [notifications] = useState([
-    {
-      id: 1,
-      type: "task",
-      message: "New task assigned: Emergency repair at Temple Street",
-      time: "30 minutes ago",
-      unread: true,
-    },
-    {
-      id: 2,
-      type: "reminder",
-      message: "Task T007 scheduled in 2 hours",
-      time: "1 hour ago",
-      unread: true,
-    },
-    {
-      id: 3,
-      type: "rating",
-      message: "Customer rated your service 5 stars",
-      time: "2 hours ago",
-      unread: false,
-    },
-  ]);
-
-  // Update task status
-  const updateTaskStatus = (taskId, newStatus, additionalData = {}) => {
-    setTodayTasks(
-      todayTasks.map((task) => {
-        if (task.id === taskId) {
-          const updatedTask = { ...task, status: newStatus, ...additionalData };
-
-          // Update stats based on status change
-          if (newStatus === "In Progress" && task.status !== "In Progress") {
-            setStats((prev) => ({ ...prev, inProgress: prev.inProgress + 1 }));
-          } else if (newStatus === "Completed" && task.status !== "Completed") {
-            setStats((prev) => ({
-              ...prev,
-              completedToday: prev.completedToday + 1,
-              inProgress: prev.inProgress - 1,
-            }));
-          }
-
-          return updatedTask;
-        }
-        return task;
-      })
-    );
-
-    setShowModal(false);
+  // Fetch dashboard stats
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await apiRequest("/dashboard/stats");
+      setStats({
+        todayTasks: response.data.todayTasks || 0,
+        completedToday: response.data.completedToday || 0,
+        inProgress: response.data.inProgress || 0,
+        pendingToday: response.data.pendingToday || 0,
+        totalCompleted: response.data.totalCompleted || 0,
+        thisMonth: response.data.thisMonth || 0,
+        completedThisMonth: response.data.completedThisMonth || 0,
+        avgRating: response.data.avgRating || 0,
+        onTimeRate: response.data.onTimeRate || 0,
+      });
+    } catch (err) {
+      console.error("Failed to fetch dashboard stats:", err);
+      setError("Failed to load dashboard statistics");
+    }
   };
 
-  // Start task
-  const handleStartTask = (task) => {
-    const currentTime = new Date().toLocaleTimeString("en-US", {
+  // Fetch today's tasks
+  const fetchTodayTasks = async () => {
+    try {
+      setLoading(true);
+      const today = new Date().toISOString().split("T")[0];
+      const response = await apiRequest(`/tasks?date=${today}`);
+
+      // Transform API data to match component structure
+      const transformedTasks = response.data.map((task) => ({
+        id: task.task_code,
+        taskId: task.id,
+        title: task.title,
+        customer: task.customer_name,
+        address: task.customer_address,
+        phone: task.customer_phone,
+        priority: task.priority,
+        status: task.status,
+        scheduledTime: `${formatTime(task.scheduled_time_start)} - ${formatTime(
+          task.scheduled_time_end
+        )}`,
+        estimatedHours: task.estimated_hours,
+        description: task.description || "",
+        materials: [], // This could be fetched from task details
+        startTime: task.actual_start_time
+          ? formatTime(task.actual_start_time)
+          : null,
+        completedTime: task.actual_end_time
+          ? formatTime(task.actual_end_time)
+          : null,
+        rating: task.rating,
+        feedback: task.feedback,
+        completionNotes: task.completion_notes,
+        additionalCharges: task.additional_charges,
+      }));
+
+      setTodayTasks(transformedTasks);
+    } catch (err) {
+      console.error("Failed to fetch tasks:", err);
+      setError("Failed to load today's tasks");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch task history
+  const fetchTaskHistory = async () => {
+    try {
+      // Fetch all tasks (not just today's)
+      const response = await apiRequest("/tasks");
+
+      // Filter completed tasks and transform for history view
+      const completedTasks = response.data
+        .filter((task) => task.status === "Completed")
+        .map((task) => ({
+          id: task.task_code,
+          taskId: task.id,
+          date: new Date(task.scheduled_date).toISOString().split("T")[0],
+          title: task.title,
+          customer: task.customer_name,
+          status: task.status,
+          rating: task.rating || 0,
+          earnings: task.additional_charges || 0, // In real app, this would be calculated
+        }))
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 20); // Show last 20 completed tasks
+
+      setTaskHistory(completedTasks);
+    } catch (err) {
+      console.error("Failed to fetch task history:", err);
+    }
+  };
+
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      const response = await apiRequest("/dashboard/notifications");
+      setNotifications(
+        response.data.map((notif) => ({
+          id: notif.id,
+          type: notif.type,
+          message: notif.message,
+          time: getRelativeTime(notif.created_at),
+          unread: !notif.is_read,
+        }))
+      );
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    }
+  };
+
+  // Helper function to format time
+  const formatTime = (timeString) => {
+    if (!timeString) return "";
+    const date = new Date(timeString);
+    return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
     });
+  };
 
-    updateTaskStatus(task.id, "In Progress", { startTime: currentTime });
-    alert(`Task "${task.title}" started at ${currentTime}`);
+  // Helper function to get relative time
+  const getRelativeTime = (timestamp) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diff = Math.floor((now - time) / 1000); // seconds
+
+    if (diff < 60) return "just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+    return `${Math.floor(diff / 86400)} days ago`;
+  };
+
+  // Load all data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      await Promise.all([
+        fetchDashboardStats(),
+        fetchTodayTasks(),
+        fetchTaskHistory(),
+        fetchNotifications(),
+      ]);
+    };
+
+    loadData();
+
+    // Refresh data every 30 seconds
+    const interval = setInterval(() => {
+      fetchTodayTasks();
+      fetchNotifications();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update task status in backend
+  const updateTaskStatus = async (taskId, newStatus, additionalData = {}) => {
+    try {
+      await apiRequest(`/tasks/${taskId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      // If completing task, send completion data
+      if (newStatus === "Completed" && additionalData.completionNotes) {
+        await apiRequest(`/tasks/${taskId}/complete`, {
+          method: "POST",
+          body: JSON.stringify({
+            completion_notes: additionalData.completionNotes,
+            materials_used: additionalData.materialsUsed || "",
+            additional_charges:
+              parseFloat(additionalData.additionalCharges) || 0,
+          }),
+        });
+      }
+
+      // Refresh data
+      await fetchTodayTasks();
+      await fetchDashboardStats();
+
+      setShowModal(false);
+      alert(
+        `Task ${
+          newStatus === "In Progress" ? "started" : "updated"
+        } successfully!`
+      );
+    } catch (err) {
+      console.error("Failed to update task:", err);
+      alert("Failed to update task status. Please try again.");
+    }
+  };
+
+  // Start task
+  const handleStartTask = async (task) => {
+    await updateTaskStatus(task.taskId, "In Progress");
   };
 
   // Complete task
-  const handleCompleteTask = (e) => {
+  const handleCompleteTask = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const completionData = {
-      completedTime: new Date().toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }),
       completionNotes: formData.get("notes"),
       materialsUsed: formData.get("materials"),
       additionalCharges: formData.get("charges"),
     };
 
-    updateTaskStatus(selectedTask.id, "Completed", completionData);
-    alert("Task completed successfully!");
+    await updateTaskStatus(selectedTask.taskId, "Completed", completionData);
   };
 
   // Handle report issue
-  const handleReportIssue = (e) => {
+  const handleReportIssue = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    alert(
-      `Issue reported: ${formData.get("issueType")} - ${formData.get(
-        "description"
-      )}`
-    );
-    setShowModal(false);
+
+    try {
+      // In a real app, you'd have an endpoint for reporting issues
+      // For now, we'll log it as an activity
+      await apiRequest("/dashboard/activities", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "Issue Reported",
+          description: `${formData.get("issueType")} - ${formData.get(
+            "description"
+          )}`,
+        }),
+      });
+
+      alert("Issue reported successfully!");
+      setShowModal(false);
+    } catch (err) {
+      alert("Failed to report issue. Please try again.");
+    }
+  };
+
+  // Mark notification as read
+  const markNotificationRead = async (notificationId) => {
+    try {
+      await apiRequest(`/dashboard/notifications/${notificationId}/read`, {
+        method: "PATCH",
+      });
+
+      // Update local state
+      setNotifications(
+        notifications.map((notif) =>
+          notif.id === notificationId ? { ...notif, unread: false } : notif
+        )
+      );
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  };
+
+  // Logout
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
   };
 
   // Calculate progress percentage
   const getProgressPercentage = () => {
-    const total = todayTasks.length;
-    const completed = todayTasks.filter((t) => t.status === "Completed").length;
+    const total = stats.todayTasks;
+    const completed = stats.completedToday;
     return total > 0 ? Math.round((completed / total) * 100) : 0;
   };
 
-  // Get task by status
+  // Get tasks by status
   const getTasksByStatus = (status) => {
     return todayTasks.filter((task) => task.status === status);
   };
 
   // Render main content
   const renderContent = () => {
+    if (loading && activeView === "today") {
+      return (
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Loading tasks...</p>
+        </div>
+      );
+    }
+
+    if (error && activeView === "today") {
+      return (
+        <div className="error-container">
+          <p>{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              fetchTodayTasks();
+              fetchDashboardStats();
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+
     switch (activeView) {
       case "today":
         return (
@@ -307,9 +418,7 @@ const ElectricianDashboard = () => {
                   <div className="stat-label">In Progress</div>
                 </div>
                 <div className="stat-box info">
-                  <div className="stat-value">
-                    {stats.todayTasks - stats.completedToday - stats.inProgress}
-                  </div>
+                  <div className="stat-value">{stats.pendingToday}</div>
                   <div className="stat-label">Pending</div>
                 </div>
               </div>
@@ -321,51 +430,59 @@ const ElectricianDashboard = () => {
               <div className="task-category">
                 <h3>🔔 Pending Tasks</h3>
                 <div className="task-list">
-                  {getTasksByStatus("Pending").map((task) => (
-                    <div key={task.id} className="task-card pending">
-                      <div className="task-header">
-                        <span className="task-id">{task.id}</span>
-                        <span
-                          className={`priority ${task.priority.toLowerCase()}`}
-                        >
-                          {task.priority} Priority
-                        </span>
-                      </div>
+                  {getTasksByStatus("Pending").length === 0 &&
+                  getTasksByStatus("Assigned").length === 0 ? (
+                    <p className="no-tasks">No pending tasks</p>
+                  ) : (
+                    [
+                      ...getTasksByStatus("Pending"),
+                      ...getTasksByStatus("Assigned"),
+                    ].map((task) => (
+                      <div key={task.id} className="task-card pending">
+                        <div className="task-header">
+                          <span className="task-id">{task.id}</span>
+                          <span
+                            className={`priority ${task.priority.toLowerCase()}`}
+                          >
+                            {task.priority} Priority
+                          </span>
+                        </div>
 
-                      <h4>{task.title}</h4>
-                      <p className="customer-info">
-                        <strong>{task.customer}</strong>
-                        <br />
-                        📍 {task.address}
-                        <br />
-                        📞 {task.phone}
-                      </p>
+                        <h4>{task.title}</h4>
+                        <p className="customer-info">
+                          <strong>{task.customer}</strong>
+                          <br />
+                          📍 {task.address}
+                          <br />
+                          📞 {task.phone}
+                        </p>
 
-                      <div className="task-time">
-                        <span>🕐 {task.scheduledTime}</span>
-                        <span>⏱️ {task.estimatedHours} hours</span>
-                      </div>
+                        <div className="task-time">
+                          <span>🕐 {task.scheduledTime}</span>
+                          <span>⏱️ {task.estimatedHours} hours</span>
+                        </div>
 
-                      <div className="task-actions">
-                        <button
-                          className="btn-start"
-                          onClick={() => handleStartTask(task)}
-                        >
-                          Start Task
-                        </button>
-                        <button
-                          className="btn-details"
-                          onClick={() => {
-                            setSelectedTask(task);
-                            setModalType("taskDetails");
-                            setShowModal(true);
-                          }}
-                        >
-                          View Details
-                        </button>
+                        <div className="task-actions">
+                          <button
+                            className="btn-start"
+                            onClick={() => handleStartTask(task)}
+                          >
+                            Start Task
+                          </button>
+                          <button
+                            className="btn-details"
+                            onClick={() => {
+                              setSelectedTask(task);
+                              setModalType("taskDetails");
+                              setShowModal(true);
+                            }}
+                          >
+                            View Details
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -373,50 +490,56 @@ const ElectricianDashboard = () => {
               <div className="task-category">
                 <h3>⚡ In Progress</h3>
                 <div className="task-list">
-                  {getTasksByStatus("In Progress").map((task) => (
-                    <div key={task.id} className="task-card in-progress">
-                      <div className="task-header">
-                        <span className="task-id">{task.id}</span>
-                        <span className="status-badge in-progress">
-                          In Progress
-                        </span>
-                      </div>
+                  {getTasksByStatus("In Progress").length === 0 ? (
+                    <p className="no-tasks">No tasks in progress</p>
+                  ) : (
+                    getTasksByStatus("In Progress").map((task) => (
+                      <div key={task.id} className="task-card in-progress">
+                        <div className="task-header">
+                          <span className="task-id">{task.id}</span>
+                          <span className="status-badge in-progress">
+                            In Progress
+                          </span>
+                        </div>
 
-                      <h4>{task.title}</h4>
-                      <p className="customer-info">
-                        <strong>{task.customer}</strong>
-                        <br />
-                        📍 {task.address}
-                      </p>
+                        <h4>{task.title}</h4>
+                        <p className="customer-info">
+                          <strong>{task.customer}</strong>
+                          <br />
+                          📍 {task.address}
+                        </p>
 
-                      <div className="task-time">
-                        <span>🕐 Started: {task.startTime}</span>
-                      </div>
+                        <div className="task-time">
+                          <span>
+                            🕐 Started: {task.startTime || "Just now"}
+                          </span>
+                        </div>
 
-                      <div className="task-actions">
-                        <button
-                          className="btn-complete"
-                          onClick={() => {
-                            setSelectedTask(task);
-                            setModalType("completeTask");
-                            setShowModal(true);
-                          }}
-                        >
-                          Complete Task
-                        </button>
-                        <button
-                          className="btn-issue"
-                          onClick={() => {
-                            setSelectedTask(task);
-                            setModalType("reportIssue");
-                            setShowModal(true);
-                          }}
-                        >
-                          Report Issue
-                        </button>
+                        <div className="task-actions">
+                          <button
+                            className="btn-complete"
+                            onClick={() => {
+                              setSelectedTask(task);
+                              setModalType("completeTask");
+                              setShowModal(true);
+                            }}
+                          >
+                            Complete Task
+                          </button>
+                          <button
+                            className="btn-issue"
+                            onClick={() => {
+                              setSelectedTask(task);
+                              setModalType("reportIssue");
+                              setShowModal(true);
+                            }}
+                          >
+                            Report Issue
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -424,36 +547,42 @@ const ElectricianDashboard = () => {
               <div className="task-category">
                 <h3>✅ Completed Today</h3>
                 <div className="task-list">
-                  {getTasksByStatus("Completed").map((task) => (
-                    <div key={task.id} className="task-card completed">
-                      <div className="task-header">
-                        <span className="task-id">{task.id}</span>
-                        <span className="status-badge completed">
-                          Completed
-                        </span>
-                      </div>
-
-                      <h4>{task.title}</h4>
-                      <p className="customer-info">
-                        <strong>{task.customer}</strong>
-                        <br />
-                        📍 {task.address}
-                      </p>
-
-                      <div className="task-time">
-                        <span>✅ Completed: {task.completedTime}</span>
-                      </div>
-
-                      {task.rating && (
-                        <div className="task-rating">
-                          <span>Rating: {"⭐".repeat(task.rating)}</span>
-                          {task.feedback && (
-                            <p className="feedback">"{task.feedback}"</p>
-                          )}
+                  {getTasksByStatus("Completed").length === 0 ? (
+                    <p className="no-tasks">No completed tasks today</p>
+                  ) : (
+                    getTasksByStatus("Completed").map((task) => (
+                      <div key={task.id} className="task-card completed">
+                        <div className="task-header">
+                          <span className="task-id">{task.id}</span>
+                          <span className="status-badge completed">
+                            Completed
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        <h4>{task.title}</h4>
+                        <p className="customer-info">
+                          <strong>{task.customer}</strong>
+                          <br />
+                          📍 {task.address}
+                        </p>
+
+                        <div className="task-time">
+                          <span>
+                            ✅ Completed: {task.completedTime || "Today"}
+                          </span>
+                        </div>
+
+                        {task.rating && (
+                          <div className="task-rating">
+                            <span>Rating: {"⭐".repeat(task.rating)}</span>
+                            {task.feedback && (
+                              <p className="feedback">"{task.feedback}"</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -472,15 +601,15 @@ const ElectricianDashboard = () => {
                 <p>Total Completed</p>
               </div>
               <div className="stat-card">
-                <h3>{stats.thisMonth}</h3>
+                <h3>{stats.completedThisMonth}</h3>
                 <p>This Month</p>
               </div>
               <div className="stat-card">
-                <h3>{stats.thisWeek}</h3>
+                <h3>{Math.round(stats.completedThisMonth / 4)}</h3>
                 <p>This Week</p>
               </div>
               <div className="stat-card">
-                <h3>{stats.avgRating} ⭐</h3>
+                <h3>{stats.avgRating.toFixed(1)} ⭐</h3>
                 <p>Average Rating</p>
               </div>
             </div>
@@ -496,25 +625,33 @@ const ElectricianDashboard = () => {
                     <th>Customer</th>
                     <th>Status</th>
                     <th>Rating</th>
-                    <th>Earnings</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {taskHistory.map((task) => (
-                    <tr key={task.id}>
-                      <td>{task.date}</td>
-                      <td>{task.id}</td>
-                      <td>{task.title}</td>
-                      <td>{task.customer}</td>
-                      <td>
-                        <span className="status-badge completed">
-                          {task.status}
-                        </span>
+                  {taskHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: "center" }}>
+                        No task history available
                       </td>
-                      <td>{"⭐".repeat(task.rating)}</td>
-                      <td>Rs. {task.earnings.toLocaleString()}</td>
                     </tr>
-                  ))}
+                  ) : (
+                    taskHistory.map((task) => (
+                      <tr key={task.id}>
+                        <td>{task.date}</td>
+                        <td>{task.id}</td>
+                        <td>{task.title}</td>
+                        <td>{task.customer}</td>
+                        <td>
+                          <span className="status-badge completed">
+                            {task.status}
+                          </span>
+                        </td>
+                        <td>
+                          {task.rating > 0 ? "⭐".repeat(task.rating) : "-"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -525,7 +662,7 @@ const ElectricianDashboard = () => {
               <div className="performance-grid">
                 <div className="performance-item">
                   <h4>Tasks Completed</h4>
-                  <p>{stats.thisMonth}</p>
+                  <p>{stats.completedThisMonth}</p>
                 </div>
                 <div className="performance-item">
                   <h4>On-Time Rate</h4>
@@ -533,11 +670,11 @@ const ElectricianDashboard = () => {
                 </div>
                 <div className="performance-item">
                   <h4>Customer Satisfaction</h4>
-                  <p>{stats.avgRating}/5.0</p>
+                  <p>{stats.avgRating.toFixed(1)}/5.0</p>
                 </div>
                 <div className="performance-item">
-                  <h4>Total Earnings</h4>
-                  <p>Rs. 125,500</p>
+                  <h4>Active Days</h4>
+                  <p>{Math.round(stats.completedThisMonth / 3)}</p>
                 </div>
               </div>
             </div>
@@ -553,29 +690,29 @@ const ElectricianDashboard = () => {
               <div className="profile-header">
                 <div className="profile-avatar">
                   {userInfo.name
-                    .split(" ")
+                    ?.split(" ")
                     .map((n) => n[0])
-                    .join("")}
+                    .join("") || "E"}
                 </div>
                 <div className="profile-info">
-                  <h3>{userInfo.name}</h3>
-                  <p>Employee ID: {userInfo.id}</p>
-                  <p>⭐ {userInfo.rating} Rating</p>
+                  <h3>{userInfo.name || "Electrician"}</h3>
+                  <p>Employee ID: {userInfo.id || "N/A"}</p>
+                  <p>⭐ {stats.avgRating.toFixed(1)} Rating</p>
                 </div>
               </div>
 
               <div className="profile-details">
                 <div className="detail-group">
                   <label>Email</label>
-                  <p>{userInfo.email}</p>
+                  <p>{userInfo.email || "Not provided"}</p>
                 </div>
                 <div className="detail-group">
                   <label>Phone</label>
-                  <p>{userInfo.phone}</p>
+                  <p>{userInfo.phone || "Not provided"}</p>
                 </div>
                 <div className="detail-group">
-                  <label>Join Date</label>
-                  <p>{userInfo.joinDate}</p>
+                  <label>Role</label>
+                  <p>{userInfo.role || "Electrician"}</p>
                 </div>
                 <div className="detail-group">
                   <label>Total Tasks Completed</label>
@@ -610,7 +747,7 @@ const ElectricianDashboard = () => {
               <div className="metrics-grid">
                 <div className="metric">
                   <h4>This Month</h4>
-                  <div className="metric-value">{stats.thisMonth}</div>
+                  <div className="metric-value">{stats.completedThisMonth}</div>
                   <p>Tasks Completed</p>
                 </div>
                 <div className="metric">
@@ -620,7 +757,9 @@ const ElectricianDashboard = () => {
                 </div>
                 <div className="metric">
                   <h4>Avg Rating</h4>
-                  <div className="metric-value">{stats.avgRating}</div>
+                  <div className="metric-value">
+                    {stats.avgRating.toFixed(1)}
+                  </div>
                   <p>Customer Satisfaction</p>
                 </div>
                 <div className="metric">
@@ -644,19 +783,26 @@ const ElectricianDashboard = () => {
       <header className="dashboard-header">
         <div className="header-left">
           <h1>Electrician Dashboard</h1>
-          <p>Welcome back, {userInfo.name}</p>
+          <p>Welcome back, {userInfo.name || "Electrician"}</p>
         </div>
         <div className="header-right">
-          <button className="notification-btn">
-            🔔
-            <span className="notification-badge">
-              {notifications.filter((n) => n.unread).length}
-            </span>
-          </button>
           <button
-            className="logout-btn"
-            onClick={() => (window.location.href = "/login")}
+            className="notification-btn"
+            onClick={() => {
+              // In a real app, this would open a notifications panel
+              notifications.forEach((notif) => {
+                if (notif.unread) markNotificationRead(notif.id);
+              });
+            }}
           >
+            🔔
+            {notifications.filter((n) => n.unread).length > 0 && (
+              <span className="notification-badge">
+                {notifications.filter((n) => n.unread).length}
+              </span>
+            )}
+          </button>
+          <button className="logout-btn" onClick={handleLogout}>
             Logout
           </button>
         </div>
@@ -672,7 +818,10 @@ const ElectricianDashboard = () => {
         </button>
         <button
           className={`nav-btn ${activeView === "history" ? "active" : ""}`}
-          onClick={() => setActiveView("history")}
+          onClick={() => {
+            setActiveView("history");
+            if (taskHistory.length === 0) fetchTaskHistory();
+          }}
         >
           📊 Task History
         </button>
@@ -735,22 +884,28 @@ const ElectricianDashboard = () => {
 
                   <div className="description-section">
                     <label>Description</label>
-                    <p>{selectedTask.description}</p>
+                    <p>
+                      {selectedTask.description || "No description provided"}
+                    </p>
                   </div>
 
-                  <div className="materials-section">
-                    <label>Required Materials</label>
-                    <ul>
-                      {selectedTask.materials.map((material, index) => (
-                        <li key={index}>{material}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {selectedTask.materials &&
+                    selectedTask.materials.length > 0 && (
+                      <div className="materials-section">
+                        <label>Required Materials</label>
+                        <ul>
+                          {selectedTask.materials.map((material, index) => (
+                            <li key={index}>{material}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                 </div>
 
                 <div className="modal-footer">
                   <button onClick={() => setShowModal(false)}>Close</button>
-                  {selectedTask.status === "Pending" && (
+                  {(selectedTask.status === "Pending" ||
+                    selectedTask.status === "Assigned") && (
                     <button
                       className="btn-primary"
                       onClick={() => handleStartTask(selectedTask)}

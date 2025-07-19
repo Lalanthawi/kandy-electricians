@@ -2,19 +2,19 @@
 import { useState } from "react";
 import logo from "../../assets/logo.png"; // Update path if needed
 import "./Login.css";
+import { useNavigate } from "react-router-dom"; // If using React Router
+import { authService } from "../../services/auth";
 
 const Login = () => {
-  // Form state
+  const navigate = useNavigate(); // or use window.location.href
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-
-  // Error state
   const [errors, setErrors] = useState({});
-
-  // Loading state
   const [isLoading, setIsLoading] = useState(false);
+
+  // Form state
 
   // Handle input changes
   const handleChange = (e) => {
@@ -57,7 +57,6 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate
     if (!validateForm()) {
       return;
     }
@@ -65,21 +64,29 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with your API call
-      console.log("Login data:", formData);
+      const response = await authService.login(
+        formData.email,
+        formData.password
+      );
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // TODO: Handle successful login
-      // - Store token
-      // - Redirect to dashboard based on role
-
-      alert("Login successful! (Replace this with navigation)");
+      // Redirect based on user role
+      switch (response.user.role) {
+        case "Admin":
+          navigate("/admin/dashboard");
+          break;
+        case "Manager":
+          navigate("/manager/dashboard");
+          break;
+        case "Electrician":
+          navigate("/electrician/dashboard");
+          break;
+        default:
+          navigate("/");
+      }
     } catch (error) {
-      console.error("Login error:", error);
       setErrors({
-        general: "Login failed. Please try again.",
+        general:
+          error.message || "Invalid email or password. Please try again.",
       });
     } finally {
       setIsLoading(false);

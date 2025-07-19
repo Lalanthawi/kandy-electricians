@@ -1,5 +1,8 @@
 // AdminDashboard.jsx
 import { useState, useEffect } from "react";
+import { dashboardService } from "../../services/dashboard";
+import { usersService } from "../../services/users";
+import { authService } from "../../services/auth";
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
@@ -8,122 +11,49 @@ const AdminDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reportData, setReportData] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+
+  // Available skills for dropdown
+  const availableSkills = [
+    "Residential Wiring",
+    "Commercial Installation",
+    "Industrial Wiring",
+    "Emergency Repairs",
+    "Solar Installation",
+    "Maintenance",
+    "Safety Inspection",
+    "Panel Upgrades",
+    "LED Lighting",
+    "Smart Home Systems",
+  ];
 
   // Dashboard statistics
   const [stats, setStats] = useState({
-    totalUsers: 45,
-    electricians: 32,
-    managers: 10,
-    admins: 3,
-    activeJobs: 24,
-    completedToday: 18,
-    pendingJobs: 6,
+    totalUsers: 0,
+    electricians: 0,
+    managers: 0,
+    admins: 0,
+    activeJobs: 0,
+    completedToday: 0,
+    pendingJobs: 0,
     systemHealth: 98.5,
   });
 
   // Users data
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john.smith@company.com",
-      role: "Electrician",
-      status: "Active",
-      phone: "+94 77 123 4567",
-      joinDate: "2023-05-15",
-      tasksCompleted: 145,
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      email: "sarah.j@company.com",
-      role: "Manager",
-      status: "Active",
-      phone: "+94 77 234 5678",
-      joinDate: "2023-03-10",
-      tasksAssigned: 89,
-    },
-    {
-      id: 3,
-      name: "Mike Wilson",
-      email: "mike.w@company.com",
-      role: "Electrician",
-      status: "Active",
-      phone: "+94 77 345 6789",
-      joinDate: "2023-08-22",
-      tasksCompleted: 78,
-    },
-    {
-      id: 4,
-      name: "Emma Davis",
-      email: "emma.d@company.com",
-      role: "Admin",
-      status: "Active",
-      phone: "+94 77 456 7890",
-      joinDate: "2023-01-05",
-      lastLogin: "2024-01-15",
-    },
-    {
-      id: 5,
-      name: "James Brown",
-      email: "james.b@company.com",
-      role: "Electrician",
-      status: "Inactive",
-      phone: "+94 77 567 8901",
-      joinDate: "2023-09-18",
-      tasksCompleted: 52,
-    },
-  ]);
+  const [users, setUsers] = useState([]);
 
   // Recent activities
-  const [activities, setActivities] = useState([
-    {
-      id: 1,
-      type: "task_completed",
-      user: "John Smith",
-      action: "completed task #1234",
-      time: "10 minutes ago",
-      icon: "✅",
-    },
-    {
-      id: 2,
-      type: "user_login",
-      user: "Sarah Johnson",
-      action: "logged into the system",
-      time: "25 minutes ago",
-      icon: "🔐",
-    },
-    {
-      id: 3,
-      type: "task_assigned",
-      user: "Mike Wilson",
-      action: "was assigned task #1235",
-      time: "1 hour ago",
-      icon: "📋",
-    },
-    {
-      id: 4,
-      type: "report_generated",
-      user: "System",
-      action: "generated monthly performance report",
-      time: "2 hours ago",
-      icon: "📊",
-    },
-    {
-      id: 5,
-      type: "user_added",
-      user: "Admin",
-      action: "added new electrician Tom Lee",
-      time: "3 hours ago",
-      icon: "👤",
-    },
-  ]);
+  const [activities, setActivities] = useState([]);
 
-  // Reports configuration
+  // Reports configuration - Only 3 reports as requested
   const [reports] = useState([
     {
       id: 1,
       name: "User Performance Report",
+      type: "user_performance",
       description:
         "Detailed analysis of user productivity and task completion rates",
       icon: "📊",
@@ -132,6 +62,7 @@ const AdminDashboard = () => {
     {
       id: 2,
       name: "System Usage Report",
+      type: "system_usage",
       description:
         "Login patterns, peak hours, and system resource utilization",
       icon: "📈",
@@ -140,124 +71,424 @@ const AdminDashboard = () => {
     {
       id: 3,
       name: "Task Analytics Report",
+      type: "task_analytics",
       description:
         "Task distribution, completion times, and efficiency metrics",
       icon: "📋",
       color: "#f39c12",
     },
-    {
-      id: 4,
-      name: "Financial Summary",
-      description: "Revenue, costs, and profitability analysis by job type",
-      icon: "💰",
-      color: "#e74c3c",
-    },
-    {
-      id: 5,
-      name: "Customer Satisfaction",
-      description: "Feedback scores, complaints, and service quality metrics",
-      icon: "⭐",
-      color: "#9b59b6",
-    },
-    {
-      id: 6,
-      name: "Security Audit Log",
-      description:
-        "Failed login attempts, permission changes, and security events",
-      icon: "🔒",
-      color: "#34495e",
-    },
   ]);
 
   // Form state for new user
   const [formData, setFormData] = useState({
-    name: "",
+    username: "",
     email: "",
+    password: "",
+    full_name: "",
     phone: "",
     role: "Electrician",
-    password: "",
+    employee_code: "",
+    skills: [],
+    certifications: "",
   });
+
+  // Password reset form
+  const [resetPasswordData, setResetPasswordData] = useState({
+    userId: null,
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  // Generate employee code
+  const generateEmployeeCode = (role) => {
+    const prefix =
+      role === "Electrician" ? "ELC" : role === "Manager" ? "MGR" : "ADM";
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    return `${prefix}${randomNum}`;
+  };
+
+  // Load data when component mounts
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  // Generate employee code when role changes
+  useEffect(() => {
+    if (modalType === "addUser" && formData.role) {
+      setFormData((prev) => ({
+        ...prev,
+        employee_code: generateEmployeeCode(formData.role),
+      }));
+    }
+  }, [formData.role, modalType]);
+
+  // Function to load all dashboard data
+  const loadDashboardData = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Load dashboard stats
+      const statsResponse = await dashboardService.getStats();
+      if (statsResponse.success) {
+        setStats({
+          ...statsResponse.data,
+          systemHealth: 98.5,
+        });
+      }
+
+      // Load users (excluding deleted ones)
+      const usersResponse = await usersService.getAll();
+      if (usersResponse.success) {
+        setUsers(
+          usersResponse.data.filter((user) => user.status !== "Deleted")
+        );
+      }
+
+      // Load recent activities
+      const activitiesResponse = await dashboardService.getActivities();
+      if (activitiesResponse.success) {
+        const formattedActivities = activitiesResponse.data
+          .slice(0, 10)
+          .map((activity) => ({
+            id: activity.id,
+            type: activity.action.toLowerCase().includes("login")
+              ? "user_login"
+              : activity.action.toLowerCase().includes("task")
+              ? "task"
+              : activity.action.toLowerCase().includes("user")
+              ? "user_added"
+              : "report_generated",
+            user: activity.user_name || "System",
+            action: activity.description || activity.action,
+            time: formatTimeAgo(new Date(activity.created_at)),
+            icon: getActivityIcon(activity.action),
+          }));
+        setActivities(formattedActivities);
+      }
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper function to format time
+  const formatTimeAgo = (date) => {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    if (seconds < 60) return "Just now";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} minutes ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hours ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} days ago`;
+  };
+
+  // Helper function to get activity icon
+  const getActivityIcon = (action) => {
+    if (action.toLowerCase().includes("login")) return "🔐";
+    if (action.toLowerCase().includes("task")) return "📋";
+    if (action.toLowerCase().includes("user")) return "👤";
+    if (action.toLowerCase().includes("report")) return "📊";
+    if (action.toLowerCase().includes("password")) return "🔑";
+    return "📌";
+  };
 
   // Handle form changes
   const handleFormChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
+    });
+  };
+
+  // Handle skills selection
+  const handleSkillsChange = (e) => {
+    const selectedOptions = Array.from(
+      e.target.selectedOptions,
+      (option) => option.value
+    );
+    setFormData({
+      ...formData,
+      skills: selectedOptions,
     });
   };
 
   // Handle add user
-  const handleAddUser = (e) => {
+  const handleAddUser = async (e) => {
     e.preventDefault();
 
-    const newUser = {
-      id: users.length + 1,
-      ...formData,
-      status: "Active",
-      joinDate: new Date().toISOString().split("T")[0],
-      tasksCompleted: 0,
-    };
+    try {
+      const userData = {
+        ...formData,
+        skills: formData.skills.join(", "),
+      };
 
-    setUsers([...users, newUser]);
-    setShowModal(false);
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      role: "Electrician",
-      password: "",
-    });
+      const response = await usersService.create(userData);
 
-    // Show success message
-    alert("User added successfully!");
+      if (response.success) {
+        await loadDashboardData();
+        setShowModal(false);
+        setFormData({
+          username: "",
+          email: "",
+          password: "",
+          full_name: "",
+          phone: "",
+          role: "Electrician",
+          employee_code: generateEmployeeCode("Electrician"),
+          skills: [],
+          certifications: "",
+        });
+        alert("User added successfully!");
+      }
+    } catch (error) {
+      alert("Error adding user: " + error.message);
+    }
   };
 
   // Handle user actions
-  const handleUserAction = (userId, action) => {
-    if (action === "toggle") {
-      setUsers(
-        users.map((user) =>
-          user.id === userId
-            ? {
-                ...user,
-                status: user.status === "Active" ? "Inactive" : "Active",
-              }
-            : user
-        )
-      );
-    } else if (action === "delete") {
-      if (confirm("Are you sure you want to delete this user?")) {
-        setUsers(users.filter((user) => user.id !== userId));
+  const handleUserAction = async (userId, action) => {
+    try {
+      if (action === "toggle") {
+        const response = await usersService.toggleStatus(userId);
+        if (response.success) {
+          await loadDashboardData();
+        }
+      } else if (action === "delete") {
+        if (
+          confirm(
+            "Are you sure you want to delete this user? This action cannot be undone."
+          )
+        ) {
+          const response = await usersService.delete(userId);
+          if (response.success) {
+            alert("User deleted successfully!");
+            await loadDashboardData();
+          }
+        }
+      } else if (action === "edit") {
+        const user = users.find((u) => u.id === userId);
+        setSelectedItem(user);
+        setFormData({
+          ...user,
+          skills: user.skills ? user.skills.split(", ") : [],
+          password: "", // Don't populate password
+        });
+        setModalType("editUser");
+        setShowModal(true);
+      } else if (action === "resetPassword") {
+        setResetPasswordData({
+          userId: userId,
+          newPassword: "",
+          confirmPassword: "",
+        });
+        setModalType("resetPassword");
+        setShowModal(true);
       }
-    } else if (action === "edit") {
-      const user = users.find((u) => u.id === userId);
-      setSelectedItem(user);
-      setModalType("editUser");
-      setShowModal(true);
+    } catch (error) {
+      alert("Error: " + error.message);
+    }
+  };
+
+  // Handle password reset
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+
+    if (resetPasswordData.newPassword !== resetPasswordData.confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+
+    if (resetPasswordData.newPassword.length < 6) {
+      alert("Password must be at least 6 characters long!");
+      return;
+    }
+
+    try {
+      const response = await usersService.resetPassword(
+        resetPasswordData.userId,
+        resetPasswordData.newPassword
+      );
+
+      if (response.success) {
+        alert("Password reset successfully!");
+        setShowModal(false);
+        setResetPasswordData({
+          userId: null,
+          newPassword: "",
+          confirmPassword: "",
+        });
+      }
+    } catch (error) {
+      alert("Error resetting password: " + error.message);
     }
   };
 
   // Handle generate report
-  const handleGenerateReport = (reportId) => {
-    const report = reports.find((r) => r.id === reportId);
-    alert(`Generating ${report.name}...`);
+  const handleGenerateReport = async (reportId) => {
+    try {
+      const report = reports.find((r) => r.id === reportId);
 
-    // Add to activities
-    const newActivity = {
-      id: activities.length + 1,
-      type: "report_generated",
-      user: "Admin",
-      action: `generated ${report.name}`,
-      time: "Just now",
-      icon: "📊",
-    };
-    setActivities([newActivity, ...activities]);
+      const response = await dashboardService.generateReport({
+        report_type: report.type,
+        start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+          .toISOString()
+          .split("T")[0],
+        end_date: new Date().toISOString().split("T")[0],
+      });
+
+      if (response.success && response.data) {
+        setReportData({
+          ...response.data,
+          reportName: report.name,
+          reportType: report.type,
+        });
+        setShowReportModal(true);
+      }
+    } catch (error) {
+      alert("Error generating report: " + error.message);
+    }
   };
 
   // Handle logout
   const handleLogout = () => {
     if (confirm("Are you sure you want to logout?")) {
-      window.location.href = "/login";
+      authService.logout();
+    }
+  };
+
+  // Render report modal content
+  const renderReportContent = () => {
+    if (!reportData) return null;
+
+    switch (reportData.reportType) {
+      case "user_performance":
+        return (
+          <div className="report-content">
+            <h3>User Performance Report</h3>
+            <div className="report-summary">
+              <p>Period: {new Date().toLocaleDateString()}</p>
+            </div>
+            <table className="report-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Tasks Completed</th>
+                  <th>Avg Rating</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.performance?.map((user, index) => (
+                  <tr key={index}>
+                    <td>{user.full_name}</td>
+                    <td>{user.role || "Electrician"}</td>
+                    <td>{user.completed_tasks || 0}</td>
+                    <td>
+                      {user.avg_rating
+                        ? parseFloat(user.avg_rating).toFixed(1)
+                        : "N/A"}
+                    </td>
+                    <td>
+                      {user.overall_rating
+                        ? parseFloat(user.overall_rating).toFixed(1)
+                        : "N/A"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+
+      case "system_usage":
+        return (
+          <div className="report-content">
+            <h3>System Usage Report</h3>
+            <div className="report-stats">
+              <div className="stat-item">
+                <h4>Total Users</h4>
+                <p>{stats.totalUsers}</p>
+              </div>
+              <div className="stat-item">
+                <h4>Active Today</h4>
+                <p>
+                  {activities.filter((a) => a.type === "user_login").length}
+                </p>
+              </div>
+              <div className="stat-item">
+                <h4>System Health</h4>
+                <p>{stats.systemHealth}%</p>
+              </div>
+            </div>
+            <h4>Recent Login Activity</h4>
+            <ul>
+              {activities
+                .filter((a) => a.type === "user_login")
+                .slice(0, 10)
+                .map((activity, index) => (
+                  <li key={index}>
+                    {activity.user} - {activity.time}
+                  </li>
+                ))}
+            </ul>
+          </div>
+        );
+
+      case "task_analytics":
+        return (
+          <div className="report-content">
+            <h3>Task Analytics Report</h3>
+            <div className="report-summary">
+              {reportData.analytics && (
+                <div className="analytics-grid">
+                  <div className="analytics-item">
+                    <h4>Total Tasks</h4>
+                    <p>{reportData.analytics.total_tasks || 0}</p>
+                  </div>
+                  <div className="analytics-item">
+                    <h4>Completed</h4>
+                    <p>{reportData.analytics.completed || 0}</p>
+                  </div>
+                  <div className="analytics-item">
+                    <h4>Cancelled</h4>
+                    <p>{reportData.analytics.cancelled || 0}</p>
+                  </div>
+                  <div className="analytics-item">
+                    <h4>Avg Duration</h4>
+                    <p>
+                      {reportData.analytics.avg_duration
+                        ? `${parseFloat(
+                            reportData.analytics.avg_duration
+                          ).toFixed(1)} hrs`
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div className="analytics-item">
+                    <h4>High Priority</h4>
+                    <p>{reportData.analytics.high_priority || 0}</p>
+                  </div>
+                  <div className="analytics-item">
+                    <h4>Medium Priority</h4>
+                    <p>{reportData.analytics.medium_priority || 0}</p>
+                  </div>
+                  <div className="analytics-item">
+                    <h4>Low Priority</h4>
+                    <p>{reportData.analytics.low_priority || 0}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
     }
   };
 
@@ -272,7 +503,7 @@ const AdminDashboard = () => {
               <div className="stat-box primary">
                 <div className="stat-icon">👥</div>
                 <div className="stat-content">
-                  <h3>{stats.totalUsers}</h3>
+                  <h3>{stats.totalUsers || 0}</h3>
                   <p>Total Users</p>
                 </div>
               </div>
@@ -280,7 +511,7 @@ const AdminDashboard = () => {
               <div className="stat-box info">
                 <div className="stat-icon">⚡</div>
                 <div className="stat-content">
-                  <h3>{stats.electricians}</h3>
+                  <h3>{stats.electricians || 0}</h3>
                   <p>Electricians</p>
                 </div>
               </div>
@@ -288,7 +519,7 @@ const AdminDashboard = () => {
               <div className="stat-box warning">
                 <div className="stat-icon">👨‍💼</div>
                 <div className="stat-content">
-                  <h3>{stats.managers}</h3>
+                  <h3>{stats.managers || 0}</h3>
                   <p>Managers</p>
                 </div>
               </div>
@@ -296,23 +527,23 @@ const AdminDashboard = () => {
               <div className="stat-box success">
                 <div className="stat-icon">🛠️</div>
                 <div className="stat-content">
-                  <h3>{stats.activeJobs}</h3>
-                  <p>Active Jobs</p>
+                  <h3>{stats.totalTasks || 0}</h3>
+                  <p>Total Tasks</p>
                 </div>
               </div>
 
               <div className="stat-box primary">
                 <div className="stat-icon">✅</div>
                 <div className="stat-content">
-                  <h3>{stats.completedToday}</h3>
-                  <p>Completed Today</p>
+                  <h3>{stats.completedTasks || 0}</h3>
+                  <p>Completed</p>
                 </div>
               </div>
 
               <div className="stat-box danger">
                 <div className="stat-icon">⏳</div>
                 <div className="stat-content">
-                  <h3>{stats.pendingJobs}</h3>
+                  <h3>{stats.pendingTasks || 0}</h3>
                   <p>Pending</p>
                 </div>
               </div>
@@ -324,6 +555,10 @@ const AdminDashboard = () => {
               <div className="action-buttons">
                 <button
                   onClick={() => {
+                    setFormData({
+                      ...formData,
+                      employee_code: generateEmployeeCode(formData.role),
+                    });
                     setModalType("addUser");
                     setShowModal(true);
                   }}
@@ -336,8 +571,8 @@ const AdminDashboard = () => {
                 <button onClick={() => setActiveSection("users")}>
                   👥 Manage Users
                 </button>
-                <button onClick={() => setActiveSection("system")}>
-                  ⚙️ System Settings
+                <button onClick={() => setActiveSection("reports")}>
+                  📈 View Reports
                 </button>
               </div>
             </div>
@@ -370,6 +605,17 @@ const AdminDashboard = () => {
               <button
                 className="btn-primary"
                 onClick={() => {
+                  setFormData({
+                    username: "",
+                    email: "",
+                    password: "",
+                    full_name: "",
+                    phone: "",
+                    role: "Electrician",
+                    employee_code: generateEmployeeCode("Electrician"),
+                    skills: [],
+                    certifications: "",
+                  });
                   setModalType("addUser");
                   setShowModal(true);
                 }}
@@ -383,7 +629,7 @@ const AdminDashboard = () => {
                 <div key={user.id} className="user-card">
                   <div className="user-header">
                     <div className="user-avatar">
-                      {user.name
+                      {user.full_name
                         .split(" ")
                         .map((n) => n[0])
                         .join("")}
@@ -396,17 +642,23 @@ const AdminDashboard = () => {
                   </div>
 
                   <div className="user-info">
-                    <h3>{user.name}</h3>
+                    <h3>{user.full_name}</h3>
                     <p className="user-role">{user.role}</p>
                     <p className="user-email">📧 {user.email}</p>
-                    <p className="user-phone">📱 {user.phone}</p>
-                    <p className="user-date">📅 Joined: {user.joinDate}</p>
-
-                    {user.role === "Electrician" && (
-                      <p className="user-tasks">
-                        ✅ Tasks: {user.tasksCompleted || 0}
-                      </p>
+                    <p className="user-phone">📱 {user.phone || "N/A"}</p>
+                    <p className="user-date">
+                      📅 Joined:{" "}
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </p>
+                    {user.employee_code && (
+                      <p className="user-code">🆔 Code: {user.employee_code}</p>
                     )}
+                    {user.role === "Electrician" &&
+                      user.total_tasks_completed !== undefined && (
+                        <p className="user-tasks">
+                          ✅ Tasks: {user.total_tasks_completed}
+                        </p>
+                      )}
                   </div>
 
                   <div className="user-actions">
@@ -415,6 +667,12 @@ const AdminDashboard = () => {
                     </button>
                     <button onClick={() => handleUserAction(user.id, "toggle")}>
                       {user.status === "Active" ? "Deactivate" : "Activate"}
+                    </button>
+                    <button
+                      onClick={() => handleUserAction(user.id, "resetPassword")}
+                      className="btn-warning"
+                    >
+                      Reset Password
                     </button>
                     <button
                       className="btn-danger"
@@ -464,100 +722,28 @@ const AdminDashboard = () => {
           </div>
         );
 
-      case "system":
-        return (
-          <div className="system-section">
-            <h2>System Settings</h2>
-
-            <div className="settings-grid">
-              <div className="setting-card">
-                <h3>🔒 Security Settings</h3>
-                <ul>
-                  <li>
-                    Password Policy: <strong>Strong</strong>
-                  </li>
-                  <li>
-                    Session Timeout: <strong>30 minutes</strong>
-                  </li>
-                  <li>
-                    Two-Factor Auth: <strong>Enabled</strong>
-                  </li>
-                  <li>
-                    Failed Login Attempts: <strong>5</strong>
-                  </li>
-                </ul>
-                <button>Configure Security</button>
-              </div>
-
-              <div className="setting-card">
-                <h3>📧 Email Configuration</h3>
-                <ul>
-                  <li>
-                    SMTP Server: <strong>mail.company.com</strong>
-                  </li>
-                  <li>
-                    Port: <strong>587</strong>
-                  </li>
-                  <li>
-                    Encryption: <strong>TLS</strong>
-                  </li>
-                  <li>
-                    Status: <strong className="text-success">Connected</strong>
-                  </li>
-                </ul>
-                <button>Update Email Settings</button>
-              </div>
-
-              <div className="setting-card">
-                <h3>💾 Database</h3>
-                <ul>
-                  <li>
-                    Type: <strong>PostgreSQL</strong>
-                  </li>
-                  <li>
-                    Size: <strong>2.4 GB</strong>
-                  </li>
-                  <li>
-                    Last Backup: <strong>Today 3:00 AM</strong>
-                  </li>
-                  <li>
-                    Auto-backup: <strong>Enabled</strong>
-                  </li>
-                </ul>
-                <button>Backup Now</button>
-              </div>
-
-              <div className="setting-card">
-                <h3>⚡ System Health</h3>
-                <div className="health-meter">
-                  <div
-                    className="health-bar"
-                    style={{ width: `${stats.systemHealth}%` }}
-                  >
-                    {stats.systemHealth}%
-                  </div>
-                </div>
-                <ul>
-                  <li>
-                    CPU Usage: <strong>45%</strong>
-                  </li>
-                  <li>
-                    Memory: <strong>62%</strong>
-                  </li>
-                  <li>
-                    Disk Space: <strong>38% used</strong>
-                  </li>
-                </ul>
-                <button>View Details</button>
-              </div>
-            </div>
-          </div>
-        );
-
       default:
         return null;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <p>Error loading dashboard: {error}</p>
+        <button onClick={loadDashboardData}>Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-dashboard">
@@ -565,7 +751,7 @@ const AdminDashboard = () => {
       <aside className="sidebar">
         <div className="logo">
           <span className="logo-icon">⚡</span>
-          <h2>ElectricianMS</h2>
+          <h2>Admin Panel</h2>
         </div>
 
         <nav className="nav-menu">
@@ -592,13 +778,6 @@ const AdminDashboard = () => {
             onClick={() => setActiveSection("reports")}
           >
             <span>📊</span> Reports
-          </button>
-
-          <button
-            className={`nav-item ${activeSection === "system" ? "active" : ""}`}
-            onClick={() => setActiveSection("system")}
-          >
-            <span>⚙️</span> System
           </button>
         </nav>
 
@@ -633,8 +812,8 @@ const AdminDashboard = () => {
         <div className="content-wrapper">{renderContent()}</div>
       </main>
 
-      {/* Modal */}
-      {showModal && (
+      {/* Add/Edit User Modal */}
+      {showModal && modalType !== "resetPassword" && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -646,11 +825,34 @@ const AdminDashboard = () => {
 
             <form onSubmit={handleAddUser}>
               <div className="form-group">
+                <label>Employee Code (Auto-generated)</label>
+                <input
+                  type="text"
+                  name="employee_code"
+                  value={formData.employee_code}
+                  readOnly
+                  style={{ backgroundColor: "#f0f0f0" }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Username</label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleFormChange}
+                  required
+                  placeholder="Enter username"
+                />
+              </div>
+
+              <div className="form-group">
                 <label>Full Name</label>
                 <input
                   type="text"
-                  name="name"
-                  value={formData.name}
+                  name="full_name"
+                  value={formData.full_name}
                   onChange={handleFormChange}
                   required
                   placeholder="Enter full name"
@@ -676,7 +878,6 @@ const AdminDashboard = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleFormChange}
-                  required
                   placeholder="+94 XX XXX XXXX"
                 />
               </div>
@@ -705,8 +906,45 @@ const AdminDashboard = () => {
                     onChange={handleFormChange}
                     required
                     placeholder="Enter password"
+                    minLength="6"
                   />
                 </div>
+              )}
+
+              {formData.role === "Electrician" && (
+                <>
+                  <div className="form-group">
+                    <label>Skills (Hold Ctrl/Cmd to select multiple)</label>
+                    <select
+                      multiple
+                      name="skills"
+                      value={formData.skills}
+                      onChange={handleSkillsChange}
+                      size="6"
+                      style={{ height: "120px" }}
+                    >
+                      {availableSkills.map((skill) => (
+                        <option key={skill} value={skill}>
+                          {skill}
+                        </option>
+                      ))}
+                    </select>
+                    <small>
+                      Selected: {formData.skills.join(", ") || "None"}
+                    </small>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Certifications</label>
+                    <input
+                      type="text"
+                      name="certifications"
+                      value={formData.certifications}
+                      onChange={handleFormChange}
+                      placeholder="Level 3 Certified, Safety Standards"
+                    />
+                  </div>
+                </>
               )}
 
               <div className="modal-actions">
@@ -718,6 +956,97 @@ const AdminDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Password Reset Modal */}
+      {showModal && modalType === "resetPassword" && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Reset User Password</h2>
+              <button className="close-btn" onClick={() => setShowModal(false)}>
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handlePasswordReset}>
+              <div className="form-group">
+                <label>New Password</label>
+                <input
+                  type="password"
+                  value={resetPasswordData.newPassword}
+                  onChange={(e) =>
+                    setResetPasswordData({
+                      ...resetPasswordData,
+                      newPassword: e.target.value,
+                    })
+                  }
+                  required
+                  placeholder="Enter new password"
+                  minLength="6"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Confirm Password</label>
+                <input
+                  type="password"
+                  value={resetPasswordData.confirmPassword}
+                  onChange={(e) =>
+                    setResetPasswordData({
+                      ...resetPasswordData,
+                      confirmPassword: e.target.value,
+                    })
+                  }
+                  required
+                  placeholder="Confirm new password"
+                  minLength="6"
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Reset Password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowReportModal(false)}
+        >
+          <div
+            className="modal-content report-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2>{reportData?.reportName}</h2>
+              <button
+                className="close-btn"
+                onClick={() => setShowReportModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">{renderReportContent()}</div>
+
+            <div className="modal-actions">
+              <button onClick={() => setShowReportModal(false)}>Close</button>
+              <button className="btn-primary" onClick={() => window.print()}>
+                Print Report
+              </button>
+            </div>
           </div>
         </div>
       )}

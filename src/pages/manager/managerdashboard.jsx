@@ -1,5 +1,9 @@
 // ManagerDashboard.jsx
 import { useState, useEffect } from "react";
+import { dashboardService } from "../../services/dashboard";
+import { tasksService } from "../../services/tasks";
+import { usersService } from "../../services/users";
+import { authService } from "../../services/auth";
 import "./ManagerDashboard.css";
 
 const ManagerDashboard = () => {
@@ -9,157 +13,100 @@ const ManagerDashboard = () => {
   const [modalType, setModalType] = useState("");
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedElectrician, setSelectedElectrician] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   // Dashboard statistics
   const [stats, setStats] = useState({
-    totalTasks: 156,
-    assignedToday: 12,
-    inProgress: 24,
-    completed: 98,
-    pending: 34,
-    teamSize: 8,
-    activeElectricians: 6,
-    avgCompletionTime: "3.5 hrs",
+    totalTasks: 0,
+    assignedToday: 0,
+    inProgress: 0,
+    completed: 0,
+    pending: 0,
+    teamSize: 0,
+    activeElectricians: 0,
+    avgCompletionTime: "0 hrs",
   });
 
   // Tasks data
-  const [tasks, setTasks] = useState([
-    {
-      id: "T001",
-      title: "Fix electrical outlet - Main Office",
-      customer: "ABC Company Ltd",
-      address: "123 Galle Road, Kandy",
-      priority: "High",
-      status: "Pending",
-      assignedTo: null,
-      createdAt: "2024-01-15 09:00",
-      dueDate: "2024-01-15 14:00",
-      estimatedHours: 2,
-      description: "Multiple outlets not working in the main office area",
-    },
-    {
-      id: "T002",
-      title: "Install new lighting system",
-      customer: "Green Gardens Hotel",
-      address: "45 Lake View Road, Kandy",
-      priority: "Medium",
-      status: "In Progress",
-      assignedTo: "John Smith",
-      createdAt: "2024-01-15 08:30",
-      dueDate: "2024-01-16 17:00",
-      estimatedHours: 6,
-      description: "Install LED lighting in the restaurant area",
-    },
-    {
-      id: "T003",
-      title: "Emergency repair - Power outage",
-      customer: "Residence - Mr. Silva",
-      address: "78 Temple Street, Kandy",
-      priority: "High",
-      status: "Assigned",
-      assignedTo: "Mike Wilson",
-      createdAt: "2024-01-15 10:30",
-      dueDate: "2024-01-15 13:00",
-      estimatedHours: 1.5,
-      description: "Complete power outage in residential building",
-    },
-    {
-      id: "T004",
-      title: "Routine maintenance check",
-      customer: "City Mall",
-      address: "10 Main Street, Kandy",
-      priority: "Low",
-      status: "Completed",
-      assignedTo: "Sarah Johnson",
-      createdAt: "2024-01-14 14:00",
-      dueDate: "2024-01-15 10:00",
-      estimatedHours: 3,
-      completedAt: "2024-01-15 09:45",
-      description: "Monthly electrical system maintenance",
-    },
-  ]);
+  const [tasks, setTasks] = useState([]);
 
   // Electricians data
-  const [electricians, setElectricians] = useState([
-    {
-      id: 1,
-      name: "John Smith",
-      status: "Available",
-      currentTask: null,
-      tasksToday: 3,
-      tasksCompleted: 2,
-      phone: "+94 77 123 4567",
-      skills: ["Residential", "Commercial", "Emergency"],
-      rating: 4.8,
-    },
-    {
-      id: 2,
-      name: "Mike Wilson",
-      status: "On Task",
-      currentTask: "T003",
-      tasksToday: 4,
-      tasksCompleted: 2,
-      phone: "+94 77 234 5678",
-      skills: ["Industrial", "Emergency", "Maintenance"],
-      rating: 4.6,
-    },
-    {
-      id: 3,
-      name: "David Brown",
-      status: "Available",
-      currentTask: null,
-      tasksToday: 2,
-      tasksCompleted: 2,
-      phone: "+94 77 345 6789",
-      skills: ["Residential", "Solar", "Maintenance"],
-      rating: 4.9,
-    },
-    {
-      id: 4,
-      name: "Tom Lee",
-      status: "Break",
-      currentTask: null,
-      tasksToday: 3,
-      tasksCompleted: 1,
-      phone: "+94 77 456 7890",
-      skills: ["Commercial", "Industrial"],
-      rating: 4.5,
-    },
-    {
-      id: 5,
-      name: "Robert Chen",
-      status: "On Task",
-      currentTask: "T002",
-      tasksToday: 2,
-      tasksCompleted: 0,
-      phone: "+94 77 567 8901",
-      skills: ["Residential", "Emergency"],
-      rating: 4.7,
-    },
-    {
-      id: 6,
-      name: "Peter Kumar",
-      status: "Offline",
-      currentTask: null,
-      tasksToday: 0,
-      tasksCompleted: 0,
-      phone: "+94 77 678 9012",
-      skills: ["Commercial", "Maintenance"],
-      rating: 4.4,
-    },
-  ]);
+  const [electricians, setElectricians] = useState([]);
 
   // Task form data
   const [taskForm, setTaskForm] = useState({
     title: "",
-    customer: "",
-    address: "",
-    phone: "",
+    customer_name: "",
+    customer_address: "",
+    customer_phone: "",
     priority: "Medium",
-    dueDate: "",
-    estimatedHours: "",
+    scheduled_date: "",
+    scheduled_time_start: "",
+    scheduled_time_end: "",
+    estimated_hours: "",
     description: "",
+    materials: [],
   });
+
+  // Load data when component mounts
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    setIsLoading(true);
+
+    try {
+      // Load stats
+      const statsResponse = await dashboardService.getStats();
+      if (statsResponse.success) {
+        setStats({
+          totalTasks: statsResponse.data.totalTasks || 0,
+          assignedToday: statsResponse.data.assignedToday || 0,
+          inProgress: statsResponse.data.inProgress || 0,
+          completed: statsResponse.data.completed || 0,
+          pending: statsResponse.data.pending || 0,
+          teamSize: statsResponse.data.teamSize || 0,
+          activeElectricians: statsResponse.data.activeElectricians || 0,
+          avgCompletionTime: `${statsResponse.data.avgCompletionTime || 0} hrs`,
+        });
+      }
+
+      // Load tasks
+      const tasksResponse = await tasksService.getAll();
+      if (tasksResponse.success) {
+        setTasks(tasksResponse.data);
+      }
+
+      // Load electricians
+      const electriciansResponse = await usersService.getElectricians();
+      if (electriciansResponse.success) {
+        const formattedElectricians = electriciansResponse.data.map((elec) => ({
+          id: elec.id,
+          name: elec.full_name,
+          status:
+            elec.current_tasks > 0
+              ? "On Task"
+              : elec.status === "Active"
+              ? "Available"
+              : "Offline",
+          currentTask: null,
+          tasksToday: elec.current_tasks || 0,
+          tasksCompleted: elec.total_tasks_completed || 0,
+          phone: elec.phone,
+          skills: elec.skills
+            ? elec.skills.split(",").map((s) => s.trim())
+            : [],
+          rating: parseFloat(elec.rating) || 0,
+        }));
+        setElectricians(formattedElectricians);
+      }
+    } catch (error) {
+      console.error("Error loading dashboard:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle form changes
   const handleFormChange = (e) => {
@@ -170,85 +117,100 @@ const ManagerDashboard = () => {
   };
 
   // Create new task
-  const handleCreateTask = (e) => {
+  const handleCreateTask = async (e) => {
     e.preventDefault();
 
-    const newTask = {
-      id: `T${String(tasks.length + 1).padStart(3, "0")}`,
-      ...taskForm,
-      status: "Pending",
-      assignedTo: null,
-      createdAt: new Date().toLocaleString(),
-    };
+    try {
+      const response = await tasksService.create(taskForm);
 
-    setTasks([newTask, ...tasks]);
-    setShowModal(false);
-    resetForm();
-    alert("Task created successfully!");
+      if (response.success) {
+        // Reload tasks
+        await loadDashboardData();
+
+        setShowModal(false);
+        resetForm();
+        alert("Task created successfully!");
+      }
+    } catch (error) {
+      alert("Error creating task: " + error.message);
+    }
   };
 
   // Assign task to electrician
-  const handleAssignTask = (taskId, electricianName) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === taskId
-          ? { ...task, status: "Assigned", assignedTo: electricianName }
-          : task
-      )
-    );
+  const handleAssignTask = async (taskId, electricianName) => {
+    try {
+      const electrician = electricians.find((e) => e.name === electricianName);
+      if (!electrician) {
+        alert("Please select an electrician");
+        return;
+      }
 
-    // Update electrician status
-    setElectricians(
-      electricians.map((elec) =>
-        elec.name === electricianName
-          ? { ...elec, status: "On Task", currentTask: taskId }
-          : elec
-      )
-    );
+      const response = await tasksService.assign(taskId, electrician.id);
 
-    setShowModal(false);
-    alert(`Task assigned to ${electricianName}`);
+      if (response.success) {
+        await loadDashboardData();
+        setShowModal(false);
+        alert(`Task assigned to ${electricianName}`);
+      }
+    } catch (error) {
+      alert("Error assigning task: " + error.message);
+    }
   };
 
   // Update task status
-  const handleStatusUpdate = (taskId, newStatus) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === taskId ? { ...task, status: newStatus } : task
-      )
-    );
+  const handleStatusUpdate = async (taskId, newStatus) => {
+    try {
+      const response = await tasksService.updateStatus(taskId, newStatus);
+
+      if (response.success) {
+        await loadDashboardData();
+      }
+    } catch (error) {
+      alert("Error updating task: " + error.message);
+    }
   };
 
   // Reset form
   const resetForm = () => {
     setTaskForm({
       title: "",
-      customer: "",
-      address: "",
-      phone: "",
+      customer_name: "",
+      customer_address: "",
+      customer_phone: "",
       priority: "Medium",
-      dueDate: "",
-      estimatedHours: "",
+      scheduled_date: "",
+      scheduled_time_start: "",
+      scheduled_time_end: "",
+      estimated_hours: "",
       description: "",
+      materials: [],
     });
   };
 
   // Handle logout
   const handleLogout = () => {
     if (confirm("Are you sure you want to logout?")) {
-      window.location.href = "/login";
+      authService.logout();
     }
   };
 
-  // Calculate task statistics
-  const getTaskStats = () => {
-    const total = tasks.length;
-    const pending = tasks.filter((t) => t.status === "Pending").length;
-    const assigned = tasks.filter((t) => t.status === "Assigned").length;
-    const inProgress = tasks.filter((t) => t.status === "In Progress").length;
-    const completed = tasks.filter((t) => t.status === "Completed").length;
+  // Generate report
+  const handleGenerateReport = async (reportType) => {
+    try {
+      const response = await dashboardService.generateReport({
+        report_type: reportType,
+        start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+          .toISOString()
+          .split("T")[0],
+        end_date: new Date().toISOString().split("T")[0],
+      });
 
-    return { total, pending, assigned, inProgress, completed };
+      if (response.success) {
+        alert("Report generated successfully!");
+      }
+    } catch (error) {
+      alert("Error generating report: " + error.message);
+    }
   };
 
   // Render main content
@@ -257,9 +219,9 @@ const ManagerDashboard = () => {
       case "overview":
         return (
           <>
-            {/* Stats Cards */}
+            {/* Stats Overview */}
             <div className="stats-grid">
-              <div className="stat-card blue">
+              <div className="stat-box blue">
                 <div className="stat-icon">📋</div>
                 <div className="stat-info">
                   <h3>{stats.totalTasks}</h3>
@@ -267,7 +229,7 @@ const ManagerDashboard = () => {
                 </div>
               </div>
 
-              <div className="stat-card green">
+              <div className="stat-box green">
                 <div className="stat-icon">✅</div>
                 <div className="stat-info">
                   <h3>{stats.completed}</h3>
@@ -275,7 +237,7 @@ const ManagerDashboard = () => {
                 </div>
               </div>
 
-              <div className="stat-card orange">
+              <div className="stat-box orange">
                 <div className="stat-icon">⏳</div>
                 <div className="stat-info">
                   <h3>{stats.inProgress}</h3>
@@ -283,7 +245,7 @@ const ManagerDashboard = () => {
                 </div>
               </div>
 
-              <div className="stat-card red">
+              <div className="stat-box red">
                 <div className="stat-icon">🔔</div>
                 <div className="stat-info">
                   <h3>{stats.pending}</h3>
@@ -291,7 +253,7 @@ const ManagerDashboard = () => {
                 </div>
               </div>
 
-              <div className="stat-card purple">
+              <div className="stat-box purple">
                 <div className="stat-icon">👷</div>
                 <div className="stat-info">
                   <h3>{stats.activeElectricians}</h3>
@@ -299,7 +261,7 @@ const ManagerDashboard = () => {
                 </div>
               </div>
 
-              <div className="stat-card teal">
+              <div className="stat-box teal">
                 <div className="stat-icon">⏱️</div>
                 <div className="stat-info">
                   <h3>{stats.avgCompletionTime}</h3>
@@ -317,7 +279,7 @@ const ManagerDashboard = () => {
                   {tasks.slice(0, 5).map((task) => (
                     <div key={task.id} className="task-item">
                       <div className="task-header">
-                        <span className="task-id">{task.id}</span>
+                        <span className="task-id">#{task.id}</span>
                         <span
                           className={`priority ${task.priority.toLowerCase()}`}
                         >
@@ -326,7 +288,7 @@ const ManagerDashboard = () => {
                       </div>
                       <h4>{task.title}</h4>
                       <p>
-                        {task.customer} • {task.address}
+                        {task.customer_name} • {task.customer_address}
                       </p>
                       <div className="task-footer">
                         <span
@@ -336,7 +298,10 @@ const ManagerDashboard = () => {
                         >
                           {task.status}
                         </span>
-                        <span className="due-date">Due: {task.dueDate}</span>
+                        <span className="due-date">
+                          Due:{" "}
+                          {new Date(task.scheduled_date).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -422,14 +387,14 @@ const ManagerDashboard = () => {
                 <tbody>
                   {tasks.map((task) => (
                     <tr key={task.id}>
-                      <td>{task.id}</td>
+                      <td>#{task.id}</td>
                       <td>
                         <div className="task-title">
                           <strong>{task.title}</strong>
-                          <small>{task.address}</small>
+                          <small>{task.customer_address}</small>
                         </div>
                       </td>
-                      <td>{task.customer}</td>
+                      <td>{task.customer_name}</td>
                       <td>
                         <span
                           className={`priority ${task.priority.toLowerCase()}`}
@@ -446,8 +411,10 @@ const ManagerDashboard = () => {
                           {task.status}
                         </span>
                       </td>
-                      <td>{task.assignedTo || "-"}</td>
-                      <td>{task.dueDate}</td>
+                      <td>{task.assigned_electrician || "-"}</td>
+                      <td>
+                        {new Date(task.scheduled_date).toLocaleDateString()}
+                      </td>
                       <td>
                         <div className="action-buttons">
                           {task.status === "Pending" && (
@@ -490,7 +457,7 @@ const ManagerDashboard = () => {
                         .join("")}
                     </div>
                     <div className="electrician-rating">
-                      ⭐ {electrician.rating}
+                      ⭐ {electrician.rating.toFixed(1)}
                     </div>
                   </div>
 
@@ -520,13 +487,13 @@ const ManagerDashboard = () => {
                       </strong>
                     </div>
                     <div className="stat">
-                      <span>Completed</span>
+                      <span>Total</span>
                       <strong>{electrician.tasksCompleted}</strong>
                     </div>
                   </div>
 
                   <div className="skills">
-                    {electrician.skills.map((skill, index) => (
+                    {electrician.skills.slice(0, 3).map((skill, index) => (
                       <span key={index} className="skill-tag">
                         {skill}
                       </span>
@@ -554,28 +521,48 @@ const ManagerDashboard = () => {
                 <div className="report-icon">📊</div>
                 <h3>Daily Task Report</h3>
                 <p>Summary of today's task assignments and completions</p>
-                <button className="generate-btn">Generate Report</button>
+                <button
+                  className="generate-btn"
+                  onClick={() => handleGenerateReport("task_analytics")}
+                >
+                  Generate Report
+                </button>
               </div>
 
               <div className="report-card">
                 <div className="report-icon">📈</div>
                 <h3>Team Performance</h3>
                 <p>Individual and team productivity metrics</p>
-                <button className="generate-btn">Generate Report</button>
+                <button
+                  className="generate-btn"
+                  onClick={() => handleGenerateReport("user_performance")}
+                >
+                  Generate Report
+                </button>
               </div>
 
               <div className="report-card">
                 <div className="report-icon">⏰</div>
                 <h3>Task Timeline Analysis</h3>
                 <p>Average completion times and delays</p>
-                <button className="generate-btn">Generate Report</button>
+                <button
+                  className="generate-btn"
+                  onClick={() => handleGenerateReport("task_analytics")}
+                >
+                  Generate Report
+                </button>
               </div>
 
               <div className="report-card">
                 <div className="report-icon">👥</div>
                 <h3>Customer Feedback</h3>
                 <p>Service quality and customer satisfaction</p>
-                <button className="generate-btn">Generate Report</button>
+                <button
+                  className="generate-btn"
+                  onClick={() => handleGenerateReport("customer_satisfaction")}
+                >
+                  Generate Report
+                </button>
               </div>
             </div>
 
@@ -584,7 +571,7 @@ const ManagerDashboard = () => {
               <h3>This Week's Performance</h3>
               <div className="stats-row">
                 <div className="stat-item">
-                  <h4>156</h4>
+                  <h4>{stats.completed}</h4>
                   <p>Tasks Completed</p>
                 </div>
                 <div className="stat-item">
@@ -608,6 +595,15 @@ const ManagerDashboard = () => {
         return null;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="manager-dashboard">
@@ -741,8 +737,8 @@ const ManagerDashboard = () => {
                       <label>Customer Name*</label>
                       <input
                         type="text"
-                        name="customer"
-                        value={taskForm.customer}
+                        name="customer_name"
+                        value={taskForm.customer_name}
                         onChange={handleFormChange}
                         required
                         placeholder="Customer or company name"
@@ -753,8 +749,8 @@ const ManagerDashboard = () => {
                       <label>Phone Number*</label>
                       <input
                         type="tel"
-                        name="phone"
-                        value={taskForm.phone}
+                        name="customer_phone"
+                        value={taskForm.customer_phone}
                         onChange={handleFormChange}
                         required
                         placeholder="+94 XX XXX XXXX"
@@ -766,8 +762,8 @@ const ManagerDashboard = () => {
                     <label>Address*</label>
                     <input
                       type="text"
-                      name="address"
-                      value={taskForm.address}
+                      name="customer_address"
+                      value={taskForm.customer_address}
                       onChange={handleFormChange}
                       required
                       placeholder="Full address"
@@ -776,29 +772,51 @@ const ManagerDashboard = () => {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Due Date*</label>
+                      <label>Scheduled Date*</label>
                       <input
-                        type="datetime-local"
-                        name="dueDate"
-                        value={taskForm.dueDate}
+                        type="date"
+                        name="scheduled_date"
+                        value={taskForm.scheduled_date}
                         onChange={handleFormChange}
                         required
                       />
                     </div>
 
                     <div className="form-group">
-                      <label>Estimated Hours*</label>
+                      <label>Start Time*</label>
                       <input
-                        type="number"
-                        name="estimatedHours"
-                        value={taskForm.estimatedHours}
+                        type="time"
+                        name="scheduled_time_start"
+                        value={taskForm.scheduled_time_start}
                         onChange={handleFormChange}
                         required
-                        step="0.5"
-                        min="0.5"
-                        placeholder="2.5"
                       />
                     </div>
+
+                    <div className="form-group">
+                      <label>End Time*</label>
+                      <input
+                        type="time"
+                        name="scheduled_time_end"
+                        value={taskForm.scheduled_time_end}
+                        onChange={handleFormChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Estimated Hours*</label>
+                    <input
+                      type="number"
+                      name="estimated_hours"
+                      value={taskForm.estimated_hours}
+                      onChange={handleFormChange}
+                      required
+                      step="0.5"
+                      min="0.5"
+                      placeholder="2.5"
+                    />
                   </div>
 
                   <div className="form-group">
@@ -840,7 +858,8 @@ const ManagerDashboard = () => {
                 <div className="task-details">
                   <h3>{selectedTask.title}</h3>
                   <p>
-                    {selectedTask.customer} • {selectedTask.address}
+                    {selectedTask.customer_name} •{" "}
+                    {selectedTask.customer_address}
                   </p>
                   <div className="task-meta">
                     <span
@@ -848,8 +867,13 @@ const ManagerDashboard = () => {
                     >
                       {selectedTask.priority} Priority
                     </span>
-                    <span>Due: {selectedTask.dueDate}</span>
-                    <span>Est: {selectedTask.estimatedHours} hours</span>
+                    <span>
+                      Due:{" "}
+                      {new Date(
+                        selectedTask.scheduled_date
+                      ).toLocaleDateString()}
+                    </span>
+                    <span>Est: {selectedTask.estimated_hours} hours</span>
                   </div>
                 </div>
 
@@ -879,7 +903,7 @@ const ManagerDashboard = () => {
                             <p>
                               Tasks today: {electrician.tasksCompleted}/
                               {electrician.tasksToday} • Rating: ⭐{" "}
-                              {electrician.rating}
+                              {electrician.rating.toFixed(1)}
                             </p>
                           </div>
                         </div>
