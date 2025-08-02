@@ -9,14 +9,24 @@ const StatsCards = ({ stats }) => {
       icon: "📋",
       color: "blue",
     },
-    { label: "Completed", value: stats.completed, icon: "✅", color: "green" },
+    {
+      label: "Completed",
+      value: stats.completed,
+      icon: "✅",
+      color: "green",
+    },
     {
       label: "In Progress",
       value: stats.inProgress,
       icon: "⏳",
       color: "orange",
     },
-    { label: "Pending", value: stats.pending, icon: "🔔", color: "red" },
+    {
+      label: "Pending",
+      value: stats.pending,
+      icon: "🔔",
+      color: "red",
+    },
     {
       label: "Active Team",
       value: stats.activeElectricians,
@@ -24,9 +34,9 @@ const StatsCards = ({ stats }) => {
       color: "purple",
     },
     {
-      label: "Avg Time",
-      value: `${stats.avgCompletionTime} hrs`,
-      icon: "⏱️",
+      label: "Assigned Today",
+      value: stats.assignedToday,
+      icon: "📅",
       color: "teal",
     },
   ];

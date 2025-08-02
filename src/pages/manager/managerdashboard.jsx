@@ -7,11 +7,12 @@ import TaskManagementView from "./components/TaskManagementView";
 import TeamView from "./components/TeamView";
 import ReportsView from "./components/ReportsView";
 import RecentTasks from "./components/RecentTasks";
-import TeamStatus from "./components/TeamStatus";
+// Removed TeamStatus import
 import CreateTaskModal from "./components/modals/CreateTaskModal";
 import AssignTaskModal from "./components/modals/AssignTaskModal";
 import ViewTaskModal from "./components/modals/ViewTaskModal";
 import EditTaskModal from "./components/modals/EditTaskModal";
+import ViewProfileModal from "./components/modals/ViewProfileModal";
 import "./ManagerDashboard.css";
 
 const ManagerDashboard = () => {
@@ -21,6 +22,7 @@ const ManagerDashboard = () => {
   const [modalType, setModalType] = useState("");
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedElectrician, setSelectedElectrician] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Use custom hook for data management
   const {
@@ -93,20 +95,11 @@ const ManagerDashboard = () => {
   };
 
   const handleViewProfile = (electrician) => {
-    // Implement view profile functionality
-    console.log("View profile:", electrician);
+    setSelectedElectrician(electrician);
+    setShowProfileModal(true);
   };
 
-  const handleAssignToElectrician = (electrician) => {
-    // Show tasks that can be assigned to this electrician
-    const pendingTasks = tasks.filter((t) => t.status === "Pending");
-    if (pendingTasks.length === 0) {
-      alert("No pending tasks available to assign");
-      return;
-    }
-    // You could open a modal here to select which task to assign
-    console.log("Assign task to:", electrician);
-  };
+  // Removed handleAssignToElectrician handler
 
   // Logout handler
   const handleLogout = () => {
@@ -131,14 +124,44 @@ const ManagerDashboard = () => {
     switch (activeView) {
       case "overview":
         return (
-          <>
+          <div className="overview-content">
             <StatsCards stats={stats} />
 
-            <div className="overview-grid">
-              <RecentTasks tasks={tasks} onViewTask={handleViewTask} />
-              <TeamStatus electricians={electricians} />
+            <div className="overview-sections">
+              {/* Quick Actions Section */}
+              <div className="quick-actions-section">
+                <h3>Quick Actions</h3>
+                <div className="action-buttons">
+                  <button
+                    className="action-btn primary"
+                    onClick={() => openModal("createTask")}
+                  >
+                    <i className="fas fa-plus"></i>
+                    Create New Task
+                  </button>
+                  <button
+                    className="action-btn secondary"
+                    onClick={() => setActiveView("tasks")}
+                  >
+                    <i className="fas fa-list"></i>
+                    View All Tasks
+                  </button>
+                  <button
+                    className="action-btn secondary"
+                    onClick={() => setActiveView("team")}
+                  >
+                    <i className="fas fa-users"></i>
+                    Manage Team
+                  </button>
+                </div>
+              </div>
+
+              {/* Recent Tasks Section */}
+              <div className="recent-tasks-section">
+                <RecentTasks tasks={tasks} onViewTask={handleViewTask} />
+              </div>
             </div>
-          </>
+          </div>
         );
 
       case "tasks":
@@ -160,10 +183,6 @@ const ManagerDashboard = () => {
           <TeamView
             electricians={electricians}
             onViewProfile={handleViewProfile}
-            onAssignTask={handleAssignToElectrician}
-            onContactElectrician={(electrician) =>
-              console.log("Contact:", electrician)
-            }
           />
         );
 
@@ -238,6 +257,17 @@ const ManagerDashboard = () => {
           task={selectedTask}
           onClose={closeModal}
           onUpdate={handleUpdateTask}
+        />
+      )}
+
+      {/* View Profile Modal */}
+      {showProfileModal && selectedElectrician && (
+        <ViewProfileModal
+          electrician={selectedElectrician}
+          onClose={() => {
+            setShowProfileModal(false);
+            setSelectedElectrician(null);
+          }}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 // components/manager/modals/CreateTaskModal.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const CreateTaskModal = ({ onClose, onCreate }) => {
   const [formData, setFormData] = useState({
@@ -16,21 +16,144 @@ const CreateTaskModal = ({ onClose, onCreate }) => {
     materials: [],
   });
 
+  const [errors, setErrors] = useState({});
+
+  // Calculate estimated hours when start and end times change
+  useEffect(() => {
+    if (formData.scheduled_time_start && formData.scheduled_time_end) {
+      calculateEstimatedHours();
+    }
+  }, [formData.scheduled_time_start, formData.scheduled_time_end]);
+
+  const calculateEstimatedHours = () => {
+    const start = formData.scheduled_time_start.split(":");
+    const end = formData.scheduled_time_end.split(":");
+
+    const startMinutes = parseInt(start[0]) * 60 + parseInt(start[1]);
+    const endMinutes = parseInt(end[0]) * 60 + parseInt(end[1]);
+
+    let diffMinutes = endMinutes - startMinutes;
+
+    // Handle case where end time is next day
+    if (diffMinutes < 0) {
+      diffMinutes += 24 * 60;
+    }
+
+    const hours = (diffMinutes / 60).toFixed(1);
+
+    setFormData((prev) => ({
+      ...prev,
+      estimated_hours: hours,
+    }));
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Title validation
+    if (!formData.title.trim()) {
+      newErrors.title = "Task title is required";
+    }
+
+    // Customer name validation
+    if (!formData.customer_name.trim()) {
+      newErrors.customer_name = "Customer name is required";
+    }
+
+    // Phone validation (10 digits)
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(formData.customer_phone.replace(/\D/g, ""))) {
+      newErrors.customer_phone = "Please enter a valid 10-digit phone number";
+    }
+
+    // Address validation
+    if (!formData.customer_address.trim()) {
+      newErrors.customer_address = "Customer address is required";
+    }
+
+    // Date validation (no past dates)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(formData.scheduled_date);
+    if (selectedDate < today) {
+      newErrors.scheduled_date = "Cannot schedule tasks for past dates";
+    }
+
+    // Time validation
+    if (!formData.scheduled_time_start) {
+      newErrors.scheduled_time_start = "Start time is required";
+    }
+    if (!formData.scheduled_time_end) {
+      newErrors.scheduled_time_end = "End time is required";
+    }
+
+    // Validate end time is after start time (if same day)
+    if (formData.scheduled_time_start && formData.scheduled_time_end) {
+      const start = formData.scheduled_time_start.split(":");
+      const end = formData.scheduled_time_end.split(":");
+      const startMinutes = parseInt(start[0]) * 60 + parseInt(start[1]);
+      const endMinutes = parseInt(end[0]) * 60 + parseInt(end[1]);
+
+      if (endMinutes <= startMinutes) {
+        newErrors.scheduled_time_end = "End time must be after start time";
+      }
+    }
+
+    // Estimated hours validation (0.5 to 24 hours)
+    const hours = parseFloat(formData.estimated_hours);
+    if (isNaN(hours) || hours < 0.5 || hours > 24) {
+      newErrors.estimated_hours = "Estimated hours must be between 0.5 and 24";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+
+    // Format phone number as user types
+    if (name === "customer_phone") {
+      const formatted = value.replace(/\D/g, "").slice(0, 10);
+      setFormData({
+        ...formData,
+        [name]: formatted,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
+
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: "",
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       await onCreate(formData);
       onClose();
     } catch (error) {
       alert(error.message);
     }
+  };
+
+  // Get today's date in YYYY-MM-DD format for min date
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
   };
 
   return (
@@ -53,9 +176,12 @@ const CreateTaskModal = ({ onClose, onCreate }) => {
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  required
                   placeholder="Brief description of the task"
+                  className={errors.title ? "error" : ""}
                 />
+                {errors.title && (
+                  <small className="error-text">{errors.title}</small>
+                )}
               </div>
 
               <div className="form-group">
@@ -69,6 +195,7 @@ const CreateTaskModal = ({ onClose, onCreate }) => {
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
                   <option value="High">High</option>
+                  <option value="Urgent">Urgent</option>
                 </select>
               </div>
             </div>
@@ -81,9 +208,12 @@ const CreateTaskModal = ({ onClose, onCreate }) => {
                   name="customer_name"
                   value={formData.customer_name}
                   onChange={handleChange}
-                  required
-                  placeholder="Customer or company name"
+                  placeholder="John Doe"
+                  className={errors.customer_name ? "error" : ""}
                 />
+                {errors.customer_name && (
+                  <small className="error-text">{errors.customer_name}</small>
+                )}
               </div>
 
               <div className="form-group">
@@ -93,22 +223,29 @@ const CreateTaskModal = ({ onClose, onCreate }) => {
                   name="customer_phone"
                   value={formData.customer_phone}
                   onChange={handleChange}
-                  required
-                  placeholder="+94 XX XXX XXXX"
+                  placeholder="0771234567"
+                  maxLength="10"
+                  className={errors.customer_phone ? "error" : ""}
                 />
+                {errors.customer_phone && (
+                  <small className="error-text">{errors.customer_phone}</small>
+                )}
               </div>
             </div>
 
             <div className="form-group">
-              <label>Address*</label>
+              <label>Customer Address*</label>
               <input
                 type="text"
                 name="customer_address"
                 value={formData.customer_address}
                 onChange={handleChange}
-                required
-                placeholder="Full address"
+                placeholder="123 Main Street, Kandy"
+                className={errors.customer_address ? "error" : ""}
               />
+              {errors.customer_address && (
+                <small className="error-text">{errors.customer_address}</small>
+              )}
             </div>
 
             <div className="form-row">
@@ -119,9 +256,12 @@ const CreateTaskModal = ({ onClose, onCreate }) => {
                   name="scheduled_date"
                   value={formData.scheduled_date}
                   onChange={handleChange}
-                  required
-                  min={new Date().toISOString().split("T")[0]}
+                  min={getTodayDate()}
+                  className={errors.scheduled_date ? "error" : ""}
                 />
+                {errors.scheduled_date && (
+                  <small className="error-text">{errors.scheduled_date}</small>
+                )}
               </div>
 
               <div className="form-group">
@@ -131,8 +271,13 @@ const CreateTaskModal = ({ onClose, onCreate }) => {
                   name="scheduled_time_start"
                   value={formData.scheduled_time_start}
                   onChange={handleChange}
-                  required
+                  className={errors.scheduled_time_start ? "error" : ""}
                 />
+                {errors.scheduled_time_start && (
+                  <small className="error-text">
+                    {errors.scheduled_time_start}
+                  </small>
+                )}
               </div>
 
               <div className="form-group">
@@ -142,8 +287,13 @@ const CreateTaskModal = ({ onClose, onCreate }) => {
                   name="scheduled_time_end"
                   value={formData.scheduled_time_end}
                   onChange={handleChange}
-                  required
+                  className={errors.scheduled_time_end ? "error" : ""}
                 />
+                {errors.scheduled_time_end && (
+                  <small className="error-text">
+                    {errors.scheduled_time_end}
+                  </small>
+                )}
               </div>
             </div>
 
@@ -154,11 +304,18 @@ const CreateTaskModal = ({ onClose, onCreate }) => {
                 name="estimated_hours"
                 value={formData.estimated_hours}
                 onChange={handleChange}
-                required
                 step="0.5"
                 min="0.5"
-                placeholder="2.5"
+                max="24"
+                placeholder="Auto-calculated based on time"
+                className={errors.estimated_hours ? "error" : ""}
               />
+              {errors.estimated_hours && (
+                <small className="error-text">{errors.estimated_hours}</small>
+              )}
+              <small>
+                Auto-calculated from start and end time, but can be edited
+              </small>
             </div>
 
             <div className="form-group">

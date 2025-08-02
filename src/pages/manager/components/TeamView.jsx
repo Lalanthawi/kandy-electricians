@@ -1,12 +1,7 @@
 // components/manager/TeamView.jsx
 import React from "react";
 
-const TeamView = ({
-  electricians,
-  onViewProfile,
-  onAssignTask,
-  onContactElectrician,
-}) => {
+const TeamView = ({ electricians, onViewProfile }) => {
   const getStatusClass = (status) => {
     return status.toLowerCase().replace(" ", "-");
   };
@@ -89,12 +84,9 @@ const TeamView = ({
                   View Profile
                 </button>
                 <button
-                  onClick={() => onAssignTask(electrician)}
-                  disabled={electrician.status !== "Available"}
+                  onClick={() => handleContact(electrician)}
+                  className="contact-btn"
                 >
-                  Assign Task
-                </button>
-                <button onClick={() => handleContact(electrician)}>
                   Contact
                 </button>
               </div>
