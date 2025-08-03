@@ -36,6 +36,11 @@ class ElectricianService {
     return this.apiRequest("/dashboard/stats");
   };
 
+  // User Profile
+  getUserProfile = () => {
+    return this.apiRequest("/users/profile");
+  };
+
   // Tasks
   getTodayTasks = (date) => {
     return this.apiRequest(`/tasks?date=${date}`);

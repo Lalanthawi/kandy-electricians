@@ -1,7 +1,14 @@
 // components/ProfileView.jsx
 import React from "react";
 
-const ProfileView = ({ userInfo, stats }) => {
+const ProfileView = ({ userInfo, userProfile, stats }) => {
+  // Use userProfile if available, fallback to userInfo
+  const profile = userProfile || userInfo;
+  
+  // Parse skills and certifications from comma-separated strings
+  const skills = profile.skills ? profile.skills.split(", ").filter(s => s) : [];
+  const certifications = profile.certifications ? profile.certifications.split(", ").filter(c => c) : [];
+  
   return (
     <div className="profile-section">
       <h2>My Profile</h2>
@@ -9,58 +16,73 @@ const ProfileView = ({ userInfo, stats }) => {
       <div className="profile-card">
         <div className="profile-header">
           <div className="profile-avatar">
-            {userInfo.name
+            {profile.full_name
+              ?.split(" ")
+              .map((n) => n[0])
+              .join("") || profile.name
               ?.split(" ")
               .map((n) => n[0])
               .join("") || "E"}
           </div>
           <div className="profile-info">
-            <h3>{userInfo.name || "Electrician"}</h3>
-            <p>Employee ID: {userInfo.id || "N/A"}</p>
+            <h3>{profile.full_name || profile.name || "Electrician"}</h3>
+            <p>Employee ID: {profile.employee_code || profile.id || "N/A"}</p>
           </div>
         </div>
 
         <div className="profile-details">
           <div className="detail-group">
             <label>Email</label>
-            <p>{userInfo.email || "Not provided"}</p>
+            <p>{profile.email || "Not provided"}</p>
           </div>
           <div className="detail-group">
             <label>Phone</label>
-            <p>{userInfo.phone || "Not provided"}</p>
+            <p>{profile.phone || "Not provided"}</p>
           </div>
           <div className="detail-group">
             <label>Role</label>
-            <p>{userInfo.role || "Electrician"}</p>
+            <p>{profile.role || "Electrician"}</p>
           </div>
           <div className="detail-group">
             <label>Total Tasks Completed</label>
-            <p>{stats.totalCompleted}</p>
+            <p>{profile.total_tasks_completed || stats.totalCompleted || 0}</p>
           </div>
           <div className="detail-group">
             <label>Join Date</label>
-            <p>{new Date().toLocaleDateString()}</p>
+            <p>{profile.join_date ? new Date(profile.join_date).toLocaleDateString() : new Date().toLocaleDateString()}</p>
           </div>
+          {profile.rating && (
+            <div className="detail-group">
+              <label>Average Rating</label>
+              <p>⭐ {parseFloat(profile.rating).toFixed(1)}/5.0</p>
+            </div>
+          )}
         </div>
 
         <div className="skills-section">
           <h4>My Skills</h4>
           <div className="skills-list">
-            <span className="skill">Residential Wiring</span>
-            <span className="skill">Commercial Installation</span>
-            <span className="skill">Emergency Repairs</span>
-            <span className="skill">Solar Panel Installation</span>
-            <span className="skill">Safety Inspection</span>
+            {skills.length > 0 ? (
+              skills.map((skill, index) => (
+                <span key={index} className="skill">{skill}</span>
+              ))
+            ) : (
+              <p className="no-data">No skills added yet</p>
+            )}
           </div>
         </div>
 
         <div className="certifications">
           <h4>Certifications</h4>
-          <ul>
-            <li>Certified Electrician - Level 3</li>
-            <li>Safety Standards Certificate</li>
-            <li>Emergency Response Training</li>
-          </ul>
+          {certifications.length > 0 ? (
+            <ul>
+              {certifications.map((cert, index) => (
+                <li key={index}>{cert}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="no-data">No certifications added yet</p>
+          )}
         </div>
       </div>
 

@@ -19,6 +19,7 @@ export const useElectricianData = () => {
   const [todayTasks, setTodayTasks] = useState([]);
   const [taskHistory, setTaskHistory] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
 
   const userInfo = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -112,6 +113,18 @@ export const useElectricianData = () => {
     }
   };
 
+  // Fetch user profile
+  const fetchUserProfile = async () => {
+    try {
+      const response = await electricianService.getUserProfile();
+      if (response.success) {
+        setUserProfile(response.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user profile:", err);
+    }
+  };
+
   // Update task status
   const updateTaskStatus = async (taskId, newStatus, additionalData = {}) => {
     try {
@@ -186,6 +199,7 @@ export const useElectricianData = () => {
         fetchDashboardStats(),
         fetchTodayTasks(),
         fetchNotifications(),
+        fetchUserProfile(),
       ]);
     };
 
@@ -207,10 +221,12 @@ export const useElectricianData = () => {
     taskHistory,
     notifications,
     userInfo,
+    userProfile,
     fetchDashboardStats,
     fetchTodayTasks,
     fetchTaskHistory,
     fetchNotifications,
+    fetchUserProfile,
     updateTaskStatus,
     markNotificationRead,
     setError,

@@ -26,6 +26,20 @@ const UserModal = ({
     "Smart Home Systems",
   ];
 
+  // Available certifications for dropdown
+  const availableCertifications = [
+    "Level 1 Electrician",
+    "Level 2 Electrician",
+    "Level 3 Electrician",
+    "Master Electrician",
+    "Electrical Safety Certificate",
+    "Industrial Electrician Certificate",
+    "Solar Installation Certificate",
+    "Smart Home Systems Certificate",
+    "Emergency Response Certificate",
+    "High Voltage Certificate",
+  ];
+
   // Validate phone
   const validatePhoneNumber = (phone) => {
     // Remove spaces and special characters
@@ -102,6 +116,18 @@ const UserModal = ({
     });
   };
 
+  // Handle certifications selection
+  const handleCertificationsChange = (e) => {
+    const selectedOptions = Array.from(
+      e.target.selectedOptions,
+      (option) => option.value
+    );
+    setFormData({
+      ...formData,
+      certifications: selectedOptions,
+    });
+  };
+
   // Validate form
   const validateForm = () => {
     const newErrors = {};
@@ -157,6 +183,9 @@ const UserModal = ({
         skills: Array.isArray(formData.skills)
           ? formData.skills.join(", ")
           : formData.skills,
+        certifications: Array.isArray(formData.certifications)
+          ? formData.certifications.join(", ")
+          : formData.certifications,
       };
 
       let response;
@@ -208,7 +237,7 @@ const UserModal = ({
       role: "Electrician",
       employee_code: "",
       skills: [],
-      certifications: "",
+      certifications: [],
       status: "Active",
     });
     setErrors({});
@@ -545,16 +574,43 @@ const UserModal = ({
               <div className="form-group elegant">
                 <label className="form-label">
                   <span className="label-text">Certifications</span>
+                  <span className="label-hint">
+                    Hold Ctrl/Cmd to select multiple
+                  </span>
                 </label>
-                <div className="input-wrapper">
-                  <input
-                    type="text"
+                <div className="skills-container">
+                  <select
+                    multiple
                     name="certifications"
                     value={formData.certifications}
-                    onChange={handleFormChange}
-                    placeholder="e.g., Level 3 Certified, Safety Standards"
-                    className="form-input"
-                  />
+                    onChange={handleCertificationsChange}
+                    size="6"
+                    className="skills-select"
+                  >
+                    {availableCertifications.map((cert) => (
+                      <option
+                        key={cert}
+                        value={cert}
+                        className="skill-option"
+                      >
+                        {cert}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="selected-skills">
+                    <p className="selected-label">Selected Certifications:</p>
+                    <div className="skill-tags">
+                      {formData.certifications.length > 0 ? (
+                        formData.certifications.map((cert) => (
+                          <span key={cert} className="skill-tag certification-tag">
+                            {cert}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="no-skills">No certifications selected</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -898,6 +954,11 @@ const UserModal = ({
           border-radius: 16px;
           font-size: 13px;
           font-weight: 500;
+        }
+
+        .skill-tag.certification-tag {
+          background: #d5f4e6;
+          color: #065f46;
         }
 
         .no-skills {

@@ -33,7 +33,7 @@ export const usersService = {
 
   resetPassword: (id, newPassword) =>
     apiRequest(`/users/${id}/reset-password`, {
-      method: "POST",
+      method: "PATCH",
       body: JSON.stringify({ newPassword }),
     }),
 

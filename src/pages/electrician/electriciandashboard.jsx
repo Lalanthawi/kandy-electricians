@@ -27,6 +27,7 @@ const ElectricianDashboard = () => {
     taskHistory,
     notifications,
     userInfo,
+    userProfile,
     fetchDashboardStats,
     fetchTodayTasks,
     fetchTaskHistory,
@@ -175,7 +176,7 @@ const ElectricianDashboard = () => {
         );
 
       case "profile":
-        return <ProfileView userInfo={userInfo} stats={stats} />;
+        return <ProfileView userInfo={userInfo} userProfile={userProfile} stats={stats} />;
 
       default:
         return null;

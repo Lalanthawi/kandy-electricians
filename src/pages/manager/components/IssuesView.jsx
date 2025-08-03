@@ -284,98 +284,183 @@ const IssuesView = () => {
       {/* Issue Detail Modal */}
       {showDetailModal && selectedIssue && (
         <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-          <div className="issue-detail-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Issue Details</h3>
-              <button className="close-btn" onClick={() => setShowDetailModal(false)}>×</button>
+          <div className="issue-detail-modal enhanced-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header enhanced">
+              <div className="header-content">
+                <div className="header-icon">
+                  <span className={`icon-badge ${getPriorityClass(selectedIssue.priority)}`}>
+                    {selectedIssue.priority === 'emergency' ? '🚨' : 
+                     selectedIssue.priority === 'urgent' ? '⚠️' : '📋'}
+                  </span>
+                </div>
+                <div className="header-text">
+                  <h3>Issue #{selectedIssue.id} - {selectedIssue.issue_type?.replace(/_/g, ' ')}</h3>
+                  <p className="header-subtitle">
+                    Reported by {selectedIssue.reported_by_name} on {formatDate(selectedIssue.created_at)}
+                  </p>
+                </div>
+              </div>
+              <button className="close-btn enhanced" onClick={() => setShowDetailModal(false)}>
+                <span>✕</span>
+              </button>
             </div>
             
-            <div className="modal-content">
-              <div className="detail-section">
-                <h4>Issue Information</h4>
-                <div className="detail-grid">
-                  <div className="detail-item">
-                    <label>Issue ID:</label>
-                    <span>#{selectedIssue.id}</span>
+            <div className="modal-content enhanced">
+              {/* Status Banner */}
+              <div className={`status-banner ${getStatusClass(selectedIssue.status)}`}>
+                <div className="status-info">
+                  <span className="status-icon">
+                    {selectedIssue.status === 'open' ? '🔴' : 
+                     selectedIssue.status === 'in_progress' ? '🟡' : '🟢'}
+                  </span>
+                  <span className="status-text">
+                    Status: <strong>{selectedIssue.status.replace(/_/g, ' ').toUpperCase()}</strong>
+                  </span>
+                </div>
+                {selectedIssue.resolved_at && (
+                  <div className="resolution-info">
+                    Resolved by {selectedIssue.resolved_by_name} on {formatDate(selectedIssue.resolved_at)}
                   </div>
-                  <div className="detail-item">
-                    <label>Type:</label>
-                    <span>{selectedIssue.issue_type?.replace(/_/g, ' ')}</span>
+                )}
+              </div>
+
+              {/* Main Details Grid */}
+              <div className="detail-section enhanced">
+                <div className="section-header">
+                  <h4>📋 Issue Details</h4>
+                  <div className="section-line"></div>
+                </div>
+                <div className="detail-cards">
+                  <div className="detail-card">
+                    <div className="card-icon">🎯</div>
+                    <div className="card-content">
+                      <label>Priority Level</label>
+                      <span className={`priority-badge large ${getPriorityClass(selectedIssue.priority)}`}>
+                        {selectedIssue.priority.toUpperCase()}
+                      </span>
+                    </div>
                   </div>
-                  <div className="detail-item">
-                    <label>Priority:</label>
-                    <span className={`priority-badge ${getPriorityClass(selectedIssue.priority)}`}>
-                      {selectedIssue.priority}
-                    </span>
+                  <div className="detail-card">
+                    <div className="card-icon">🏷️</div>
+                    <div className="card-content">
+                      <label>Issue Type</label>
+                      <span className="detail-value">{selectedIssue.issue_type?.replace(/_/g, ' ')}</span>
+                    </div>
                   </div>
-                  <div className="detail-item">
-                    <label>Status:</label>
-                    <span className={`status-badge ${getStatusClass(selectedIssue.status)}`}>
-                      {selectedIssue.status.replace(/_/g, ' ')}
-                    </span>
+                  <div className="detail-card">
+                    <div className="card-icon">👷</div>
+                    <div className="card-content">
+                      <label>Reported By</label>
+                      <span className="detail-value">{selectedIssue.reported_by_name}</span>
+                      <span className="detail-sub">{selectedIssue.reported_by_phone}</span>
+                    </div>
                   </div>
-                  <div className="detail-item">
-                    <label>Reported By:</label>
-                    <span>{selectedIssue.reported_by_name} ({selectedIssue.reported_by_phone})</span>
+                  <div className="detail-card">
+                    <div className="card-icon">📅</div>
+                    <div className="card-content">
+                      <label>Timeline</label>
+                      <span className="detail-value">
+                        {Math.floor((new Date() - new Date(selectedIssue.created_at)) / (1000 * 60 * 60 * 24))} days ago
+                      </span>
+                      <span className="detail-sub">{formatDate(selectedIssue.created_at)}</span>
+                    </div>
                   </div>
-                  <div className="detail-item">
-                    <label>Reported Date:</label>
-                    <span>{formatDate(selectedIssue.created_at)}</span>
-                  </div>
-                  {selectedIssue.resolved_at && (
-                    <>
-                      <div className="detail-item">
-                        <label>Resolved By:</label>
-                        <span>{selectedIssue.resolved_by_name}</span>
-                      </div>
-                      <div className="detail-item">
-                        <label>Resolved Date:</label>
-                        <span>{formatDate(selectedIssue.resolved_at)}</span>
-                      </div>
-                    </>
-                  )}
                 </div>
               </div>
 
-              <div className="detail-section">
-                <h4>Description</h4>
-                <p className="description-text">{selectedIssue.description}</p>
+              {/* Description Section */}
+              <div className="detail-section enhanced">
+                <div className="section-header">
+                  <h4>📝 Issue Description</h4>
+                  <div className="section-line"></div>
+                </div>
+                <div className="description-box">
+                  <p>{selectedIssue.description}</p>
+                </div>
                 {selectedIssue.requested_action && (
                   <>
-                    <h4>Requested Action</h4>
-                    <p className="action-text">{selectedIssue.requested_action}</p>
+                    <div className="section-header mt-3">
+                      <h4>🎬 Requested Action</h4>
+                      <div className="section-line"></div>
+                    </div>
+                    <div className="action-box">
+                      <p>{selectedIssue.requested_action}</p>
+                    </div>
                   </>
                 )}
               </div>
 
-              <div className="detail-section">
-                <h4>Related Task</h4>
-                <div className="task-details">
-                  <p><strong>Task Code:</strong> {selectedIssue.task_code}</p>
-                  <p><strong>Title:</strong> {selectedIssue.task_title}</p>
-                  <p><strong>Customer:</strong> {selectedIssue.customer_name} ({selectedIssue.customer_phone})</p>
-                  <p><strong>Location:</strong> {selectedIssue.customer_address}</p>
+              {/* Related Task Section */}
+              <div className="detail-section enhanced">
+                <div className="section-header">
+                  <h4>🔗 Related Task Information</h4>
+                  <div className="section-line"></div>
+                </div>
+                <div className="task-info-card">
+                  <div className="task-header">
+                    <span className="task-badge">{selectedIssue.task_code}</span>
+                    <h5>{selectedIssue.task_title}</h5>
+                  </div>
+                  <div className="task-details-grid">
+                    <div className="task-detail">
+                      <span className="detail-icon">👤</span>
+                      <div>
+                        <label>Customer</label>
+                        <p>{selectedIssue.customer_name}</p>
+                        <span className="sub-text">{selectedIssue.customer_phone}</span>
+                      </div>
+                    </div>
+                    <div className="task-detail">
+                      <span className="detail-icon">📍</span>
+                      <div>
+                        <label>Location</label>
+                        <p>{selectedIssue.customer_address}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              {/* Resolution Notes Section */}
+              {selectedIssue.resolution_notes && (
+                <div className="detail-section enhanced">
+                  <div className="section-header">
+                    <h4>✅ Resolution Notes</h4>
+                    <div className="section-line"></div>
+                  </div>
+                  <div className="resolution-box">
+                    <p>{selectedIssue.resolution_notes}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
               {selectedIssue.status !== 'resolved' && (
-                <div className="modal-actions">
-                  {selectedIssue.status === 'open' && (
+                <div className="modal-actions enhanced">
+                  <button
+                    className="action-btn cancel-btn"
+                    onClick={() => setShowDetailModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <div className="action-group">
+                    {selectedIssue.status === 'open' && (
+                      <button
+                        className="action-btn progress-btn enhanced"
+                        onClick={() => updateIssueStatus(selectedIssue.id, 'in_progress')}
+                        disabled={actionLoading}
+                      >
+                        <span>🔄</span> Start Working
+                      </button>
+                    )}
                     <button
-                      className="action-btn progress-btn"
-                      onClick={() => updateIssueStatus(selectedIssue.id, 'in_progress')}
+                      className="action-btn resolve-btn enhanced"
+                      onClick={() => updateIssueStatus(selectedIssue.id, 'resolved')}
                       disabled={actionLoading}
                     >
-                      Mark as In Progress
+                      <span>✅</span> Mark as Resolved
                     </button>
-                  )}
-                  <button
-                    className="action-btn resolve-btn"
-                    onClick={() => updateIssueStatus(selectedIssue.id, 'resolved')}
-                    disabled={actionLoading}
-                  >
-                    Mark as Resolved
-                  </button>
+                  </div>
                 </div>
               )}
             </div>

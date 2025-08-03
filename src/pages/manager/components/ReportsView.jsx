@@ -18,6 +18,13 @@ const ReportsView = ({ onGenerateReport }) => {
       description: "Individual and team productivity metrics",
       color: "green",
     },
+    {
+      id: "daily_stats",
+      icon: "📊",
+      title: "Daily Statistics",
+      description: "Today's tasks, completions, and electrician activity",
+      color: "blue",
+    },
   ];
 
   const handleGenerateReport = async (reportType) => {
@@ -86,6 +93,40 @@ const ReportsView = ({ onGenerateReport }) => {
       };
     }
     
+    if (type === 'daily_stats') {
+      const summary = data.summary || {};
+      const tasksByStatus = data.tasks_by_status || [];
+      const electricianActivity = data.electrician_activity || [];
+      const hourlyDistribution = data.hourly_distribution || [];
+      
+      return {
+        summary: {
+          date: new Date().toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          }),
+          totalTasks: summary.total_tasks || 0,
+          completedTasks: summary.completed_tasks || 0,
+          inProgressTasks: summary.in_progress_tasks || 0,
+          pendingTasks: summary.pending_tasks || 0,
+          activeElectricians: summary.active_electricians || 0,
+          completionRate: summary.total_tasks > 0 
+            ? ((summary.completed_tasks / summary.total_tasks) * 100).toFixed(1) 
+            : 0
+        },
+        tasksByStatus,
+        electricianActivity: electricianActivity.map(e => ({
+          name: e.electrician_name,
+          tasksCompleted: e.tasks_completed || 0,
+          tasksInProgress: e.tasks_in_progress || 0,
+          totalTasks: e.total_tasks || 0
+        })),
+        hourlyDistribution
+      };
+    }
+    
     console.error('processReportData - Unknown report type:', type);
     return null;
   };
@@ -120,7 +161,7 @@ const ReportsView = ({ onGenerateReport }) => {
           setIsModalOpen(false);
           console.log('Modal closed');
         }}
-        reportType={'team_performance'}
+        reportType={modalReportType === 'user_performance' ? 'team_performance' : modalReportType}
         reportData={modalReportData}
       />
     </div>

@@ -32,8 +32,9 @@ const ReportModal = ({ isOpen, onClose, reportType, reportData }) => {
 
   const downloadReport = () => {
     const date = new Date().toISOString().split('T')[0];
-    const fileName = `Team_Performance_Report_${date}.html`;
-    const reportContent = renderTeamPerformanceReportHTML();
+    const reportTitle = reportType === 'daily_stats' ? 'Daily_Statistics_Report' : 'Team_Performance_Report';
+    const fileName = `${reportTitle}_${date}.html`;
+    const reportContent = reportType === 'daily_stats' ? renderDailyStatsReportHTML() : renderTeamPerformanceReportHTML();
     
     const html = `
 <!DOCTYPE html>
@@ -45,6 +46,7 @@ const ReportModal = ({ isOpen, onClose, reportType, reportData }) => {
     body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
     h1 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
     h2 { color: #374151; margin-top: 30px; }
+    .date { color: #6b7280; font-size: 16px; margin-top: -20px; margin-bottom: 20px; }
     .section { margin: 20px 0; padding: 20px; background: #f9fafb; border-radius: 8px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
     .item { background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb; }
@@ -59,6 +61,8 @@ const ReportModal = ({ isOpen, onClose, reportType, reportData }) => {
     tr:hover { background: #f9fafb; }
     .chart-bar { background: #e5e7eb; height: 24px; border-radius: 4px; margin: 10px 0; }
     .chart-fill { background: #3b82f6; height: 100%; border-radius: 4px; }
+    .performance-bar { background: #e5e7eb; height: 20px; border-radius: 4px; width: 100%; }
+    .performance-fill { background: #10b981; height: 100%; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -129,6 +133,82 @@ const ReportModal = ({ isOpen, onClose, reportType, reportData }) => {
     `;
   };
 
+  const renderDailyStatsReportHTML = () => {
+    const { summary, electricianActivity } = reportData || {};
+    return `
+      <h1>Daily Statistics Report</h1>
+      <p class="date">${summary?.date || new Date().toLocaleDateString()}</p>
+      
+      <div class="section">
+        <h2>Today's Overview</h2>
+        <div class="grid">
+          <div class="item">
+            <div class="label">Total Tasks</div>
+            <div class="value">${summary?.totalTasks || 0}</div>
+          </div>
+          <div class="item">
+            <div class="label">Completed Tasks</div>
+            <div class="value success">${summary?.completedTasks || 0}</div>
+          </div>
+          <div class="item">
+            <div class="label">In Progress</div>
+            <div class="value warning">${summary?.inProgressTasks || 0}</div>
+          </div>
+          <div class="item">
+            <div class="label">Pending Tasks</div>
+            <div class="value danger">${summary?.pendingTasks || 0}</div>
+          </div>
+          <div class="item">
+            <div class="label">Active Electricians</div>
+            <div class="value">${summary?.activeElectricians || 0}</div>
+          </div>
+          <div class="item">
+            <div class="label">Completion Rate</div>
+            <div class="value success">${summary?.completionRate || 0}%</div>
+          </div>
+        </div>
+      </div>
+      
+      ${electricianActivity && electricianActivity.length > 0 ? `
+      <div class="section">
+        <h2>Electrician Activity</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Electrician Name</th>
+              <th>Completed</th>
+              <th>In Progress</th>
+              <th>Total Tasks</th>
+              <th>Performance</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${electricianActivity.map(electrician => {
+              const completionRate = electrician.totalTasks > 0 
+                ? (electrician.tasksCompleted / electrician.totalTasks * 100).toFixed(0) 
+                : 0;
+              return `
+                <tr>
+                  <td>${electrician.name}</td>
+                  <td class="success">${electrician.tasksCompleted}</td>
+                  <td class="warning">${electrician.tasksInProgress}</td>
+                  <td>${electrician.totalTasks}</td>
+                  <td>
+                    <div class="performance-bar">
+                      <div class="performance-fill" style="width: ${completionRate}%;"></div>
+                    </div>
+                    <span style="margin-left: 10px;">${completionRate}%</span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      ` : ''}
+    `;
+  };
+
 
   const renderTeamPerformanceReport = () => {
     console.log('renderTeamPerformanceReport - reportData:', reportData);
@@ -185,6 +265,86 @@ const ReportModal = ({ isOpen, onClose, reportType, reportData }) => {
     );
   };
 
+  const renderDailyStatsReport = () => {
+    console.log('renderDailyStatsReport - reportData:', reportData);
+    const { summary, electricianActivity } = reportData || {};
+    
+    return (
+      <>
+        <h2 className="report-modal-title">Daily Statistics Report</h2>
+        <p className="report-date">{summary?.date}</p>
+        
+        <div className="report-section">
+          <h3 className="report-section-title">📊 Today's Overview</h3>
+          <div className="summary-grid">
+            <div className="summary-item">
+              <span className="summary-label">Total Tasks</span>
+              <span className="summary-value">{summary?.totalTasks || 0}</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">Completed Tasks</span>
+              <span className="summary-value success">{summary?.completedTasks || 0}</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">In Progress</span>
+              <span className="summary-value warning">{summary?.inProgressTasks || 0}</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">Pending Tasks</span>
+              <span className="summary-value danger">{summary?.pendingTasks || 0}</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">Active Electricians</span>
+              <span className="summary-value">{summary?.activeElectricians || 0}</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">Completion Rate</span>
+              <span className="summary-value success">{summary?.completionRate || 0}%</span>
+            </div>
+          </div>
+        </div>
+
+        {electricianActivity && electricianActivity.length > 0 && (
+          <div className="report-section">
+            <h3 className="report-section-title">👷 Electrician Activity</h3>
+            <table className="report-table">
+              <thead>
+                <tr>
+                  <th>Electrician Name</th>
+                  <th>Completed</th>
+                  <th>In Progress</th>
+                  <th>Total Tasks</th>
+                  <th>Performance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {electricianActivity.map((electrician, index) => (
+                  <tr key={index}>
+                    <td>{electrician.name}</td>
+                    <td className="text-success">{electrician.tasksCompleted}</td>
+                    <td className="text-warning">{electrician.tasksInProgress}</td>
+                    <td>{electrician.totalTasks}</td>
+                    <td>
+                      <div className="performance-bar">
+                        <div 
+                          className="performance-fill"
+                          style={{ 
+                            width: `${electrician.totalTasks > 0 ? (electrician.tasksCompleted / electrician.totalTasks * 100) : 0}%`,
+                            background: '#10b981'
+                          }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </>
+    );
+  };
+
   return (
     <div className="report-modal-overlay" onClick={onClose}>
       <div className="report-modal" onClick={(e) => e.stopPropagation()}>
@@ -198,7 +358,8 @@ const ReportModal = ({ isOpen, onClose, reportType, reportData }) => {
           ) : (
             <>
               {console.log('Rendering report - reportType:', reportType)}
-              {reportType === 'team_performance' ? renderTeamPerformanceReport() : (
+              {reportType === 'team_performance' ? renderTeamPerformanceReport() : 
+               reportType === 'daily_stats' ? renderDailyStatsReport() : (
                 <div>Unknown report type: {reportType}</div>
               )}
             </>

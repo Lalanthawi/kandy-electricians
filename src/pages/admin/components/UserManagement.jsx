@@ -30,7 +30,7 @@ const UserManagement = ({
       role: "Electrician",
       employee_code: generateEmployeeCode("Electrician"),
       skills: [],
-      certifications: "",
+      certifications: [],
     });
     setModalType("addUser");
     setShowModal(true);
@@ -62,6 +62,7 @@ const UserManagement = ({
         setFormData({
           ...user,
           skills: user.skills ? user.skills.split(", ") : [],
+          certifications: user.certifications ? user.certifications.split(", ") : [],
           password: "",
         });
         setModalType("editUser");
