@@ -31,9 +31,6 @@ const TeamView = ({ electricians, onViewProfile }) => {
                     .map((n) => n[0])
                     .join("")}
                 </div>
-                <div className="electrician-rating">
-                  ⭐ {electrician.rating.toFixed(1)}
-                </div>
               </div>
 
               <h3>{electrician.name}</h3>

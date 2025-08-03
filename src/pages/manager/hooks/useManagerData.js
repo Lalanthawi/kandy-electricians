@@ -17,6 +17,9 @@ export const useManagerData = () => {
     teamSize: 0,
     activeElectricians: 0,
     avgCompletionTime: 0,
+    openIssues: 0,
+    urgentIssues: 0,
+    emergencyIssues: 0,
   });
 
   // Data states
@@ -31,19 +34,36 @@ export const useManagerData = () => {
   // Fetch dashboard stats
   const fetchDashboardStats = async () => {
     try {
-      const response = await managerService.getDashboardStats();
-      if (response.success) {
-        setStats({
-          totalTasks: response.data.totalTasks || 0,
-          assignedToday: response.data.assignedToday || 0,
-          inProgress: response.data.inProgress || 0,
-          completed: response.data.completed || 0,
-          pending: response.data.pending || 0,
-          assigned: response.data.assigned || 0,
-          teamSize: response.data.teamSize || 0,
-          activeElectricians: response.data.activeElectricians || 0,
-          avgCompletionTime: response.data.avgCompletionTime || 0,
-        });
+      const [dashboardResponse, issueStatsResponse] = await Promise.all([
+        managerService.getDashboardStats(),
+        managerService.getIssueStats().catch(err => {
+          console.error("Failed to fetch issue stats:", err);
+          return null;
+        })
+      ]);
+      
+      if (dashboardResponse.success) {
+        setStats(prevStats => ({
+          ...prevStats,
+          totalTasks: dashboardResponse.data.totalTasks || 0,
+          assignedToday: dashboardResponse.data.assignedToday || 0,
+          inProgress: dashboardResponse.data.inProgress || 0,
+          completed: dashboardResponse.data.completed || 0,
+          pending: dashboardResponse.data.pending || 0,
+          assigned: dashboardResponse.data.assigned || 0,
+          teamSize: dashboardResponse.data.teamSize || 0,
+          activeElectricians: dashboardResponse.data.activeElectricians || 0,
+          avgCompletionTime: dashboardResponse.data.avgCompletionTime || 0,
+        }));
+      }
+      
+      if (issueStatsResponse?.success && issueStatsResponse?.stats) {
+        setStats(prevStats => ({
+          ...prevStats,
+          openIssues: issueStatsResponse.stats.open_issues || 0,
+          urgentIssues: issueStatsResponse.stats.urgent_issues || 0,
+          emergencyIssues: issueStatsResponse.stats.emergency_issues || 0,
+        }));
       }
     } catch (err) {
       console.error("Failed to fetch dashboard stats:", err);

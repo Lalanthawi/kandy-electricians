@@ -27,6 +27,27 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
+// Auth Redirect Component - redirects to appropriate dashboard if logged in
+const AuthRedirect = () => {
+  const token = getToken();
+  const user = getUser();
+
+  if (token && user) {
+    switch (user.role) {
+      case "Admin":
+        return <Navigate to="/admin/dashboard" replace />;
+      case "Manager":
+        return <Navigate to="/manager/dashboard" replace />;
+      case "Electrician":
+        return <Navigate to="/electrician/dashboard" replace />;
+      default:
+        return <Navigate to="/login" />;
+    }
+  }
+
+  return <Navigate to="/login" />;
+};
+
 function App() {
   return (
     <Router>
@@ -60,7 +81,7 @@ function App() {
           }
         />
 
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/" element={<AuthRedirect />} />
         <Route path="/unauthorized" element={<div>Unauthorized Access</div>} />
       </Routes>
     </Router>

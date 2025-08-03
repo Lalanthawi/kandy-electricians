@@ -1,11 +1,12 @@
 // components/manager/ManagerSidebar.jsx
 import React from "react";
 
-const ManagerSidebar = ({ activeView, onViewChange, userInfo, onLogout }) => {
+const ManagerSidebar = ({ activeView, onViewChange, userInfo, onLogout, issuesCount = 0 }) => {
   const navItems = [
     { id: "overview", label: "Overview", icon: "📊" },
     { id: "tasks", label: "Tasks", icon: "📋" },
     { id: "team", label: "Team", icon: "👥" },
+    { id: "issues", label: "Issues", icon: "⚠️" },
     { id: "reports", label: "Reports", icon: "📈" },
   ];
 
@@ -21,9 +22,15 @@ const ManagerSidebar = ({ activeView, onViewChange, userInfo, onLogout }) => {
           <button
             key={item.id}
             className={`nav-item ${activeView === item.id ? "active" : ""}`}
-            onClick={() => onViewChange(item.id)}
+            onClick={() => {
+              console.log('Nav clicked:', item.id);
+              onViewChange(item.id);
+            }}
           >
             <span>{item.icon}</span> {item.label}
+            {item.id === "issues" && issuesCount > 0 && (
+              <span className="nav-badge">{issuesCount}</span>
+            )}
           </button>
         ))}
       </nav>

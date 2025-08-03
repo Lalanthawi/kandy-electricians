@@ -58,10 +58,6 @@ const TaskHistoryView = ({ taskHistory, onRefresh }) => {
           <h3>{getThisWeekTasks().length}</h3>
           <p>This Week</p>
         </div>
-        <div className="stat-card">
-          <h3>{getAverageRating().toFixed(1)} ⭐</h3>
-          <p>Average Rating</p>
-        </div>
       </div>
 
       {/* History Table */}
@@ -75,15 +71,13 @@ const TaskHistoryView = ({ taskHistory, onRefresh }) => {
               <th>Customer</th>
               <th>Status</th>
               <th>Priority</th>
-              <th>Rating</th>
-              <th>Earnings</th>
             </tr>
           </thead>
           <tbody>
             {taskHistory.length === 0 ? (
               <tr>
                 <td
-                  colSpan="8"
+                  colSpan="6"
                   style={{ textAlign: "center", padding: "2rem" }}
                 >
                   <div>
@@ -124,12 +118,6 @@ const TaskHistoryView = ({ taskHistory, onRefresh }) => {
                       {task.priority}
                     </span>
                   </td>
-                  <td>
-                    {task.rating > 0
-                      ? "⭐".repeat(Math.min(task.rating, 5))
-                      : "-"}
-                  </td>
-                  <td>${(task.earnings || 0).toFixed(2)}</td>
                 </tr>
               ))
             )}
@@ -137,34 +125,6 @@ const TaskHistoryView = ({ taskHistory, onRefresh }) => {
         </table>
       </div>
 
-      {/* Monthly Summary */}
-      <div className="monthly-summary">
-        <h3>Performance Summary</h3>
-        <div className="performance-grid">
-          <div className="performance-item">
-            <h4>Tasks Completed</h4>
-            <p>{getCompletedTasks().length}</p>
-          </div>
-          <div className="performance-item">
-            <h4>Average Rating</h4>
-            <p>{getAverageRating().toFixed(1)}/5.0</p>
-          </div>
-          <div className="performance-item">
-            <h4>Total Earnings</h4>
-            <p>${getTotalEarnings().toFixed(2)}</p>
-          </div>
-          <div className="performance-item">
-            <h4>Active Tasks</h4>
-            <p>
-              {
-                taskHistory.filter(
-                  (t) => t.status === "In Progress" || t.status === "Assigned"
-                ).length
-              }
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

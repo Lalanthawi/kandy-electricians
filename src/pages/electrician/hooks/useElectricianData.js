@@ -29,10 +29,10 @@ export const useElectricianData = () => {
       if (response.success) {
         setStats({
           todayTasks: response.data.todayTasks || 0,
-          completedToday: response.data.completedToday || 0,
-          inProgress: response.data.inProgress || 0,
-          pendingToday: response.data.pendingToday || 0,
-          totalCompleted: response.data.totalCompleted || 0,
+          completedToday: response.data.todayCompleted || response.data.completedToday || 0,
+          inProgress: response.data.inProgressTasks || response.data.inProgress || 0,
+          pendingToday: response.data.assignedTasks || response.data.pendingToday || 0,
+          totalCompleted: response.data.completedTasks || response.data.totalCompleted || 0,
           thisMonth: response.data.thisMonth || 0,
           completedThisMonth: response.data.completedThisMonth || 0,
           avgRating: response.data.avgRating || 0,
@@ -124,15 +124,40 @@ export const useElectricianData = () => {
         await electricianService.completeTask(taskId, additionalData);
       }
 
-      // Refresh data
-      await fetchTodayTasks();
-      await fetchDashboardStats();
+      // Immediately update local state for instant feedback
+      setTodayTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.taskId === taskId ? { ...task, status: newStatus } : task
+        )
+      );
+
+      // Update stats immediately
+      if (newStatus === "Completed") {
+        setStats(prevStats => ({
+          ...prevStats,
+          completedToday: prevStats.completedToday + 1,
+          inProgress: Math.max(0, prevStats.inProgress - 1),
+          pendingToday: prevStats.pendingToday
+        }));
+      } else if (newStatus === "In Progress") {
+        setStats(prevStats => ({
+          ...prevStats,
+          inProgress: prevStats.inProgress + 1,
+          pendingToday: Math.max(0, prevStats.pendingToday - 1)
+        }));
+      }
+
+      // Then refresh from server in background
+      fetchTodayTasks();
+      fetchDashboardStats();
 
       return {
         success: true,
-        message: `Task ${
-          newStatus === "In Progress" ? "started" : "updated"
-        } successfully!`,
+        message: newStatus === "Completed" 
+          ? "✅ Task completed successfully!" 
+          : newStatus === "In Progress"
+          ? "🚀 Task started successfully!"
+          : "Task updated successfully!",
       };
     } catch (err) {
       console.error("Failed to update task:", err);
@@ -166,11 +191,10 @@ export const useElectricianData = () => {
 
     loadData();
 
-    // Refresh data every 30 seconds
+    // Refresh notifications every 60 seconds (less frequent)
     const interval = setInterval(() => {
-      fetchTodayTasks();
       fetchNotifications();
-    }, 30000);
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);

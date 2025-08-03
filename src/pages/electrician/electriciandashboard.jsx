@@ -85,11 +85,46 @@ const ElectricianDashboard = () => {
 
   const handleReportIssue = async (task, issueData) => {
     try {
-      // For now, we'll just show success since we don't have a dedicated issue endpoint
-      alert("Issue reported successfully! Manager has been notified.");
-      setShowModal(false);
+      const token = localStorage.getItem("token");
+      const payload = {
+        task_id: task.taskId || task.id, // Use taskId which is the numeric ID
+        issue_type: issueData.issueType,
+        description: issueData.description,
+        priority: issueData.priority || "normal",
+        requested_action: issueData.action,
+      };
+      
+      console.log("Reporting issue with payload:", payload);
+      console.log("Task object:", task);
+      
+      const response = await fetch("/api/issues", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Issue creation failed:", errorData);
+        throw new Error(errorData.message || "Failed to report issue");
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        alert("Issue reported successfully! Manager has been notified.");
+        setShowModal(false);
+        // Refresh data to update UI
+        await fetchTodayTasks();
+      } else {
+        throw new Error(result.message || "Failed to report issue");
+      }
     } catch (error) {
-      alert("Failed to report issue. Please try again.");
+      console.error("Error reporting issue:", error);
+      alert(error.message || "Failed to report issue. Please try again.");
     }
   };
 

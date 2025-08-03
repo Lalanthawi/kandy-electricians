@@ -17,7 +17,6 @@ const ProfileView = ({ userInfo, stats }) => {
           <div className="profile-info">
             <h3>{userInfo.name || "Electrician"}</h3>
             <p>Employee ID: {userInfo.id || "N/A"}</p>
-            <p>⭐ {stats.avgRating.toFixed(1)} Rating</p>
           </div>
         </div>
 

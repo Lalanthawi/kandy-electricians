@@ -1,5 +1,5 @@
 // Login.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import logo from "../../assets/logo.png"; // Update path if needed
 import "./Login.css";
 import { useNavigate } from "react-router-dom"; // If using React Router
@@ -13,6 +13,34 @@ const Login = () => {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+    
+    if (token && user) {
+      try {
+        const userData = JSON.parse(user);
+        // Redirect based on role
+        switch (userData.role) {
+          case "Admin":
+            navigate("/admin/dashboard", { replace: true });
+            break;
+          case "Manager":
+            navigate("/manager/dashboard", { replace: true });
+            break;
+          case "Electrician":
+            navigate("/electrician/dashboard", { replace: true });
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, [navigate]);
 
   // Form state
 
@@ -69,19 +97,19 @@ const Login = () => {
         formData.password
       );
 
-      // Redirect based on user role
+      // Redirect based on user role with replace to prevent going back
       switch (response.user.role) {
         case "Admin":
-          navigate("/admin/dashboard");
+          navigate("/admin/dashboard", { replace: true });
           break;
         case "Manager":
-          navigate("/manager/dashboard");
+          navigate("/manager/dashboard", { replace: true });
           break;
         case "Electrician":
-          navigate("/electrician/dashboard");
+          navigate("/electrician/dashboard", { replace: true });
           break;
         default:
-          navigate("/");
+          navigate("/", { replace: true });
       }
     } catch (error) {
       setErrors({

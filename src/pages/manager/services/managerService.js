@@ -90,6 +90,11 @@ class ManagerService {
     });
   };
 
+  // Issues
+  getIssueStats = () => {
+    return this.apiRequest("/issues/stats");
+  };
+
   // Activities
   getRecentActivities = () => {
     return this.apiRequest("/dashboard/activities");
