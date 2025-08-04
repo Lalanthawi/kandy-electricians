@@ -10,6 +10,7 @@ const TaskManagementView = ({
   onAssignTask,
   onViewTask,
   onEditTask,
+  onDeleteTask,
 }) => {
   const filters = [
     { id: "all", label: "All Tasks" },
@@ -132,6 +133,15 @@ const TaskManagementView = ({
                       >
                         Edit
                       </button>
+                      {task.status !== "Completed" && (
+                        <button
+                          className="btn-delete"
+                          onClick={() => onDeleteTask(task)}
+                          title="Delete Task"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

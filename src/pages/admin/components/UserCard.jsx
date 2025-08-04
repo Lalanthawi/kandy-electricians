@@ -27,10 +27,6 @@ const UserCard = ({ user, onUserAction }) => {
         {user.employee_code && (
           <p className="user-code">🆔 Code: {user.employee_code}</p>
         )}
-        {user.role === "Electrician" &&
-          user.total_tasks_completed !== undefined && (
-            <p className="user-tasks">✅ Tasks: {user.total_tasks_completed}</p>
-          )}
       </div>
 
       <div className="user-actions">

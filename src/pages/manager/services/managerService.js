@@ -41,6 +41,17 @@ class ManagerService {
     return this.apiRequest("/tasks");
   };
 
+  getTaskById = async (taskId) => {
+    const response = await this.apiRequest(`/tasks/${taskId}`);
+    if (response.success && response.data) {
+      return {
+        ...response,
+        data: this.transformTask(response.data),
+      };
+    }
+    return response;
+  };
+
   getTasksByStatus = (status) => {
     return this.apiRequest(`/tasks?status=${status}`);
   };
@@ -70,6 +81,12 @@ class ManagerService {
     return this.apiRequest(`/tasks/${taskId}`, {
       method: "PUT",
       body: JSON.stringify(taskData),
+    });
+  };
+
+  deleteTask = (taskId) => {
+    return this.apiRequest(`/tasks/${taskId}`, {
+      method: "DELETE",
     });
   };
 
@@ -127,27 +144,34 @@ class ManagerService {
   };
 
   transformTasks = (tasks) => {
-    return tasks.map((task) => ({
-      id: task.id,
-      taskCode: task.task_code || `T${task.id}`,
-      title: task.title,
-      description: task.description,
-      customerName: task.customer_name,
-      customerPhone: task.customer_phone,
-      customerAddress: task.customer_address,
-      priority: task.priority,
-      status: task.status,
-      assignedTo: task.assigned_to,
-      assignedElectrician: task.assigned_electrician,
-      scheduledDate: task.scheduled_date,
-      scheduledTimeStart: task.scheduled_time_start,
-      scheduledTimeEnd: task.scheduled_time_end,
-      estimatedHours: task.estimated_hours,
-      createdBy: task.created_by_name,
-      rating: task.rating,
-      feedback: task.feedback,
-    }));
+    return tasks.map((task) => this.transformTask(task));
   };
+
+  transformTask = (task) => ({
+    id: task.id,
+    taskCode: task.task_code || `T${task.id}`,
+    title: task.title,
+    description: task.description,
+    customerName: task.customer_name,
+    customerPhone: task.customer_phone,
+    customerAddress: task.customer_address,
+    priority: task.priority,
+    status: task.status,
+    assignedTo: task.assigned_to,
+    assignedElectrician: task.assigned_electrician,
+    scheduledDate: task.scheduled_date,
+    scheduledTimeStart: task.scheduled_time_start,
+    scheduledTimeEnd: task.scheduled_time_end,
+    estimatedHours: task.estimated_hours,
+    createdBy: task.created_by_name,
+    rating: task.rating,
+    feedback: task.feedback,
+    // Completion data
+    completion_notes: task.completion_notes,
+    materials_used: task.materials_used,
+    additional_charges: task.additional_charges,
+    completed_at: task.completed_at,
+  });
 
   transformElectricians = (electricians) => {
     return electricians.map((elec) => ({

@@ -20,16 +20,6 @@ const Overview = ({
     return `${prefix}${randomNum}`;
   };
 
-  // Handle generate report
-  const handleGenerateReport = async (reportId) => {
-    try {
-      // This will be implemented in the Reports component
-      console.log("Generate report:", reportId);
-    } catch (error) {
-      alert("Error generating report: " + error.message);
-    }
-  };
-
   return (
     <>
       {/* Stats Overview */}
@@ -42,7 +32,6 @@ const Overview = ({
         setFormData={setFormData}
         setActiveSection={setActiveSection}
         generateEmployeeCode={generateEmployeeCode}
-        handleGenerateReport={handleGenerateReport}
       />
 
       {/* Recent Activity */}

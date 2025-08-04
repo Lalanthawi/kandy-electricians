@@ -9,14 +9,11 @@ export const useManagerData = () => {
   // Stats state
   const [stats, setStats] = useState({
     totalTasks: 0,
-    assignedToday: 0,
     inProgress: 0,
     completed: 0,
     pending: 0,
     assigned: 0,
-    teamSize: 0,
     activeElectricians: 0,
-    avgCompletionTime: 0,
     openIssues: 0,
     urgentIssues: 0,
     emergencyIssues: 0,
@@ -46,14 +43,11 @@ export const useManagerData = () => {
         setStats(prevStats => ({
           ...prevStats,
           totalTasks: dashboardResponse.data.totalTasks || 0,
-          assignedToday: dashboardResponse.data.assignedToday || 0,
-          inProgress: dashboardResponse.data.inProgress || 0,
-          completed: dashboardResponse.data.completed || 0,
-          pending: dashboardResponse.data.pending || 0,
-          assigned: dashboardResponse.data.assigned || 0,
-          teamSize: dashboardResponse.data.teamSize || 0,
-          activeElectricians: dashboardResponse.data.activeElectricians || 0,
-          avgCompletionTime: dashboardResponse.data.avgCompletionTime || 0,
+          inProgress: dashboardResponse.data.inProgressTasks || 0,
+          completed: dashboardResponse.data.completedTasks || 0,
+          pending: dashboardResponse.data.pendingTasks || 0,
+          assigned: dashboardResponse.data.assignedTasks || 0,
+          activeElectricians: dashboardResponse.data.availableElectricians || 0,
         }));
       }
       
@@ -187,6 +181,35 @@ export const useManagerData = () => {
     }
   };
 
+  // Get task by ID with completion details
+  const getTaskById = async (taskId) => {
+    try {
+      const response = await managerService.getTaskById(taskId);
+      if (response.success) {
+        return {
+          success: true,
+          data: response.data,
+        };
+      }
+    } catch (err) {
+      throw new Error("Failed to fetch task details: " + err.message);
+    }
+  };
+
+  // Delete task
+  const deleteTask = async (taskId) => {
+    try {
+      const response = await managerService.deleteTask(taskId);
+      if (response.success) {
+        await fetchTasks();
+        await fetchDashboardStats();
+        return { success: true, message: "Task deleted successfully!" };
+      }
+    } catch (err) {
+      throw new Error("Failed to delete task: " + err.message);
+    }
+  };
+
   // Generate report
   const generateReport = async (reportType, startDate, endDate) => {
     try {
@@ -262,6 +285,8 @@ export const useManagerData = () => {
     assignTask,
     updateTaskStatus,
     updateTask,
+    deleteTask,
+    getTaskById,
     generateReport,
     setError,
   };

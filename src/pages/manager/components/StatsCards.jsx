@@ -22,8 +22,8 @@ const StatsCards = ({ stats }) => {
       color: "orange",
     },
     {
-      label: "Pending",
-      value: stats.pending,
+      label: "Assigned",
+      value: stats.assigned,
       icon: "🔔",
       color: "red",
     },
@@ -32,12 +32,6 @@ const StatsCards = ({ stats }) => {
       value: stats.activeElectricians,
       icon: "👷",
       color: "purple",
-    },
-    {
-      label: "Assigned Today",
-      value: stats.assignedToday,
-      icon: "📅",
-      color: "teal",
     },
   ];
 

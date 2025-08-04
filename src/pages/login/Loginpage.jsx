@@ -13,6 +13,9 @@ const Login = () => {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockTimer, setBlockTimer] = useState(null);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -42,14 +45,41 @@ const Login = () => {
     }
   }, [navigate]);
 
+  // Cleanup timer on component unmount
+  useEffect(() => {
+    return () => {
+      if (blockTimer) {
+        clearTimeout(blockTimer);
+      }
+    };
+  }, [blockTimer]);
+
   // Form state
 
   // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Basic input sanitization
+    let sanitizedValue = value;
+    
+    if (name === "email") {
+      // Remove leading/trailing whitespace and convert to lowercase for email
+      sanitizedValue = value.trimStart().toLowerCase();
+      // Limit email length
+      if (sanitizedValue.length > 255) {
+        sanitizedValue = sanitizedValue.substring(0, 255);
+      }
+    } else if (name === "password") {
+      // Limit password length but preserve case and whitespace
+      if (value.length > 128) {
+        sanitizedValue = value.substring(0, 128);
+      }
+    }
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: sanitizedValue,
     }));
 
     // Clear error when user types
@@ -59,6 +89,14 @@ const Login = () => {
         [name]: "",
       }));
     }
+    
+    // Clear general error when user makes changes
+    if (errors.general) {
+      setErrors((prev) => ({
+        ...prev,
+        general: "",
+      }));
+    }
   };
 
   // Validate form
@@ -66,15 +104,21 @@ const Login = () => {
     const newErrors = {};
 
     // Email validation
-    if (!formData.email) {
+    if (!formData.email?.trim()) {
       newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      newErrors.email = "Please enter a valid email address";
+    } else if (formData.email.trim().length > 255) {
+      newErrors.email = "Email is too long";
     }
 
     // Password validation
     if (!formData.password) {
       newErrors.password = "Password is required";
+    } else if (formData.password.length < 1) {
+      newErrors.password = "Password cannot be empty";
+    } else if (formData.password.length > 128) {
+      newErrors.password = "Password is too long";
     }
 
     setErrors(newErrors);
@@ -85,6 +129,17 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Clear previous errors
+    setErrors({});
+
+    // Check if user is temporarily blocked
+    if (isBlocked) {
+      setErrors({
+        general: "Too many failed attempts. Please wait before trying again.",
+      });
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
@@ -93,9 +148,17 @@ const Login = () => {
 
     try {
       const response = await authService.login(
-        formData.email,
+        formData.email.trim(),
         formData.password
       );
+
+      // Reset failed attempts on successful login
+      setFailedAttempts(0);
+      setIsBlocked(false);
+      if (blockTimer) {
+        clearTimeout(blockTimer);
+        setBlockTimer(null);
+      }
 
       // Redirect based on user role with replace to prevent going back
       switch (response.user.role) {
@@ -112,10 +175,54 @@ const Login = () => {
           navigate("/", { replace: true });
       }
     } catch (error) {
+      console.error("Login error:", error);
+      
+      // Handle specific error types
+      let errorMessage = "An unexpected error occurred. Please try again.";
+      
+      if (error.message) {
+        const msg = error.message.toLowerCase();
+        
+        if (msg.includes("invalid email or password")) {
+          errorMessage = "Invalid email or password. Please check your credentials and try again.";
+        } else if (msg.includes("unauthorized")) {
+          errorMessage = "Your account may be inactive. Please contact your administrator.";
+        } else if (msg.includes("server error") || msg.includes("network")) {
+          errorMessage = "Connection error. Please check your internet connection and try again.";
+        } else if (msg.includes("user not found")) {
+          errorMessage = "No account found with this email address.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       setErrors({
-        general:
-          error.message || "Invalid email or password. Please try again.",
+        general: errorMessage,
       });
+      
+      // Increment failed attempts and implement rate limiting
+      const newFailedAttempts = failedAttempts + 1;
+      setFailedAttempts(newFailedAttempts);
+      
+      // Block user after 5 failed attempts for 5 minutes
+      if (newFailedAttempts >= 5) {
+        setIsBlocked(true);
+        setErrors({
+          general: "Too many failed login attempts. Please wait 5 minutes before trying again.",
+        });
+        
+        // Set timer to unblock user after 5 minutes
+        const timer = setTimeout(() => {
+          setIsBlocked(false);
+          setFailedAttempts(0);
+          setBlockTimer(null);
+        }, 5 * 60 * 1000); // 5 minutes
+        
+        setBlockTimer(timer);
+      }
+      
+      // Clear password field on failed login for security
+      setFormData(prev => ({ ...prev, password: "" }));
     } finally {
       setIsLoading(false);
     }
@@ -133,46 +240,69 @@ const Login = () => {
 
         {/* Error Message */}
         {errors.general && (
-          <div className="error-message">{errors.general}</div>
+          <div className="error-message" role="alert" aria-live="polite">
+            {errors.general}
+          </div>
         )}
 
         {/* Login Form */}
         <form onSubmit={handleSubmit}>
           {/* Email Field */}
           <div className="form-field">
-            <label>Email</label>
+            <label htmlFor="email">Email</label>
             <input
+              id="email"
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               placeholder="Enter your email"
               className={errors.email ? "error" : ""}
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
+              maxLength={255}
+              disabled={isLoading}
+              required
+              aria-describedby={errors.email ? "email-error" : undefined}
+              aria-invalid={errors.email ? "true" : "false"}
             />
             {errors.email && (
-              <span className="field-error">{errors.email}</span>
+              <span id="email-error" className="field-error" role="alert">
+                {errors.email}
+              </span>
             )}
           </div>
 
           {/* Password Field */}
           <div className="form-field">
-            <label>Password</label>
+            <label htmlFor="password">Password</label>
             <input
+              id="password"
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               placeholder="Enter your password"
               className={errors.password ? "error" : ""}
+              autoComplete="current-password"
+              maxLength={128}
+              disabled={isLoading}
+              required
+              aria-describedby={errors.password ? "password-error" : undefined}
+              aria-invalid={errors.password ? "true" : "false"}
             />
             {errors.password && (
-              <span className="field-error">{errors.password}</span>
+              <span id="password-error" className="field-error" role="alert">
+                {errors.password}
+              </span>
             )}
           </div>
 
           {/* Submit Button */}
-          <button type="submit" className="submit-button" disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Login"}
+          <button type="submit" className="submit-button" disabled={isLoading || isBlocked}>
+            {isBlocked ? "Account Temporarily Blocked" : isLoading ? "Logging in..." : "Login"}
           </button>
         </form>
 

@@ -110,6 +110,42 @@ const ViewTaskModal = ({ task, onClose, onEdit }) => {
               </div>
             )}
 
+            {task.status === "Completed" && (task.completion_notes || task.materials_used || task.additional_charges) && (
+              <div className="detail-section">
+                <h4>Task Completion Details</h4>
+                <div className="completion-details">
+                  {task.completion_notes && (
+                    <div className="completion-item">
+                      <label>Completion Notes</label>
+                      <p className="completion-text">{task.completion_notes}</p>
+                    </div>
+                  )}
+                  {task.materials_used && (
+                    <div className="completion-item">
+                      <label>Materials Used</label>
+                      <p className="completion-text">{task.materials_used}</p>
+                    </div>
+                  )}
+                  {task.additional_charges && parseFloat(task.additional_charges) > 0 && (
+                    <div className="completion-item">
+                      <label>Additional Charges</label>
+                      <p className="completion-text charges">
+                        ${parseFloat(task.additional_charges).toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+                  {task.completed_at && (
+                    <div className="completion-item">
+                      <label>Completed At</label>
+                      <p className="completion-text">
+                        {new Date(task.completed_at).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {task.rating && (
               <div className="detail-section">
                 <h4>Customer Feedback</h4>

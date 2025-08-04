@@ -5,7 +5,6 @@ const QuickActions = ({
   setFormData,
   setActiveSection,
   generateEmployeeCode,
-  handleGenerateReport,
 }) => {
   // Handle add new user
   const handleAddNewUser = () => {
@@ -29,9 +28,6 @@ const QuickActions = ({
       <h2>Quick Actions</h2>
       <div className="action-buttons">
         <button onClick={handleAddNewUser}>➕ Add New User</button>
-        <button onClick={() => handleGenerateReport(1)}>
-          📊 Generate Report
-        </button>
         <button onClick={() => setActiveSection("users")}>
           👥 Manage Users
         </button>

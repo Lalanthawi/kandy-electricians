@@ -1,30 +1,36 @@
 // components/manager/ReportsView.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReportModal from "./ReportModal";
 
-const ReportsView = ({ onGenerateReport }) => {
+const ReportsView = ({ onGenerateReport, stats }) => {
   const [loading, setLoading] = useState(false);
   const [activeReport, setActiveReport] = useState(null);
   const [generatedReport, setGeneratedReport] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalReportData, setModalReportData] = useState(null);
   const [modalReportType, setModalReportType] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [timeRange, setTimeRange] = useState('today');
 
   const reports = [
     {
       id: "user_performance",
-      icon: "📈",
+      icon: "👥",
       title: "Team Performance",
       description: "Individual and team productivity metrics",
-      color: "green",
+      color: "blue",
+      category: "performance",
+      features: ["Task completion rates", "Individual metrics", "Workload distribution"]
     },
     {
       id: "daily_stats",
       icon: "📊",
       title: "Daily Statistics",
       description: "Today's tasks, completions, and electrician activity",
-      color: "blue",
-    },
+      color: "green",
+      category: "operations",
+      features: ["Real-time data", "Task breakdown", "Hourly trends"]
+    }
   ];
 
   const handleGenerateReport = async (reportType) => {
@@ -87,7 +93,10 @@ const ReportsView = ({ onGenerateReport }) => {
           totalCompleted: summary.total_completed || 0,
           overallCompletionRate: summary.total_tasks_assigned > 0 
             ? (summary.total_completed / summary.total_tasks_assigned) * 100 
-            : 0
+            : 0,
+          period_start: summary.period_start,
+          period_end: summary.period_end,
+          report_period: summary.report_period
         },
         workloadDistribution
       };
@@ -133,23 +142,47 @@ const ReportsView = ({ onGenerateReport }) => {
 
 
   return (
-    <div className="reports-view">
-      <h2>Reports & Analytics</h2>
+    <div className="minimal-reports-view">
+      {/* Header Section */}
+      <div className="minimal-reports-header">
+        <h2>Reports & Analytics</h2>
+        <p>Generate team performance and daily statistics reports</p>
+      </div>
 
-      <div className="reports-grid">
+      {/* Reports Grid */}
+      <div className="minimal-reports-grid">
         {reports.map((report) => (
-          <div key={report.id} className={`report-card ${report.color}`}>
-            <div className="report-icon">{report.icon}</div>
-            <h3>{report.title}</h3>
-            <p>{report.description}</p>
+          <div key={report.id} className="minimal-report-card">
+            <div className="minimal-card-header">
+              <div className="minimal-icon">{report.icon}</div>
+              <div className="minimal-title-section">
+                <h3>{report.title}</h3>
+                <p>{report.description}</p>
+              </div>
+            </div>
+            <div className="minimal-features">
+              {report.features.map((feature, index) => (
+                <span key={index} className="minimal-feature-tag">
+                  {feature}
+                </span>
+              ))}
+            </div>
             <button
-              className="generate-btn"
+              className="minimal-generate-btn"
               onClick={() => handleGenerateReport(report.id)}
               disabled={loading && activeReport === report.id}
             >
-              {loading && activeReport === report.id
-                ? "Generating..."
-                : "Generate Report"}
+              {loading && activeReport === report.id ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <span>📊</span>
+                  Generate Report
+                </>
+              )}
             </button>
           </div>
         ))}

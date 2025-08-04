@@ -29,9 +29,6 @@ const ViewProfileModal = ({ electrician, onClose }) => {
             <div className="profile-info">
               <h3>{electrician.name}</h3>
               <p className="employee-code">ID: {electrician.employeeCode}</p>
-              <div className="profile-rating">
-                ⭐ {electrician.rating.toFixed(1)} / 5.0
-              </div>
             </div>
           </div>
 

@@ -88,7 +88,10 @@ const ReportModal = ({ isOpen, onClose, reportType, reportData }) => {
   const renderTeamPerformanceReportHTML = () => {
     const { teamSummary, workloadDistribution } = reportData || {};
     return `
-      <h1>Team Performance Report</h1>
+      <h1>Team Performance Report - Last 12 Months</h1>
+      ${teamSummary?.period_start && teamSummary?.period_end ? `
+        <div class="date">Report Period: ${new Date(teamSummary.period_start).toLocaleDateString()} - ${new Date(teamSummary.period_end).toLocaleDateString()}</div>
+      ` : ''}
       <div class="section">
         <h2>Team Summary</h2>
         <div class="grid">
@@ -217,7 +220,15 @@ const ReportModal = ({ isOpen, onClose, reportType, reportData }) => {
     
     return (
       <>
-        <h2 className="report-modal-title">Team Performance Report</h2>
+        <h2 className="report-modal-title">Team Performance Report - Last 12 Months</h2>
+        {teamSummary?.period_start && teamSummary?.period_end && (
+          <div className="report-period">
+            <span className="period-label">Report Period:</span>
+            <span className="period-dates">
+              {new Date(teamSummary.period_start).toLocaleDateString()} - {new Date(teamSummary.period_end).toLocaleDateString()}
+            </span>
+          </div>
+        )}
         
         <div className="report-section">
           <h3 className="report-section-title">Team Summary</h3>

@@ -37,6 +37,8 @@ const ManagerDashboard = () => {
     assignTask,
     updateTaskStatus,
     updateTask,
+    deleteTask,
+    getTaskById,
     generateReport,
   } = useManagerData();
 
@@ -78,15 +80,67 @@ const ManagerDashboard = () => {
     }
   };
 
-  const handleViewTask = (task) => {
-    setSelectedTask(task);
-    openModal("viewTask");
+  const handleViewTask = async (task) => {
+    try {
+      // Fetch detailed task data with completion information
+      const result = await getTaskById(task.id);
+      if (result.success) {
+        setSelectedTask(result.data);
+        openModal("viewTask");
+      } else {
+        // Fallback to basic task data if detailed fetch fails
+        setSelectedTask(task);
+        openModal("viewTask");
+      }
+    } catch (error) {
+      console.error("Failed to fetch task details:", error);
+      // Fallback to basic task data
+      setSelectedTask(task);
+      openModal("viewTask");
+    }
   };
 
   const handleEditTask = (task) => {
     setSelectedTask(task);
     setModalType("editTask");
     setShowModal(true);
+  };
+
+  const handleDeleteTask = async (task) => {
+    // Check if task can be deleted
+    if (task.status === "Completed") {
+      alert("Cannot delete completed tasks.");
+      return;
+    }
+    
+    const confirmDelete = confirm(
+      `Are you sure you want to delete the task "${task.title}"? This action cannot be undone.`
+    );
+    
+    if (confirmDelete) {
+      try {
+        const result = await deleteTask(task.id);
+        if (result.success) {
+          alert(result.message);
+        }
+      } catch (error) {
+        console.error("Delete task error:", error);
+        
+        // Provide more specific error messages
+        let errorMessage = "Failed to delete task";
+        if (error.message.includes("Cannot delete completed tasks")) {
+          errorMessage = "Cannot delete completed tasks";
+        } else if (error.message.includes("permission")) {
+          errorMessage = "You don't have permission to delete this task";
+        } else if (error.message.includes("not found")) {
+          errorMessage = "Task not found";
+        } else {
+          errorMessage = error.message || "An unexpected error occurred while deleting the task";
+        }
+        
+        alert("Error: " + errorMessage);
+      }
+    }
   };
 
   const handleViewProfile = (electrician) => {
@@ -162,6 +216,7 @@ const ManagerDashboard = () => {
             onAssignTask={(task) => openModal("assignTask", task)}
             onViewTask={handleViewTask}
             onEditTask={handleEditTask}
+            onDeleteTask={handleDeleteTask}
           />
         );
 
@@ -177,7 +232,7 @@ const ManagerDashboard = () => {
         return <IssuesView />;
 
       case "reports":
-        return <ReportsView onGenerateReport={generateReport} />;
+        return <ReportsView onGenerateReport={generateReport} stats={stats} />;
 
       default:
         return null;
