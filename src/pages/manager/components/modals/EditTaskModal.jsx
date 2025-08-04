@@ -36,10 +36,28 @@ const EditTaskModal = ({ task, onClose, onUpdate }) => {
   }, [task]);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    let updatedFormData = { ...formData, [name]: value };
+
+    // Auto-calculate estimated hours when time changes
+    if (name === 'scheduled_time_start' || name === 'scheduled_time_end') {
+      const startTime = name === 'scheduled_time_start' ? value : formData.scheduled_time_start;
+      const endTime = name === 'scheduled_time_end' ? value : formData.scheduled_time_end;
+      
+      if (startTime && endTime) {
+        const start = new Date(`2000-01-01T${startTime}`);
+        const end = new Date(`2000-01-01T${endTime}`);
+        
+        if (end > start) {
+          const diffInHours = (end - start) / (1000 * 60 * 60);
+          // Round up to nearest half hour
+          const roundedHours = Math.ceil(diffInHours * 2) / 2;
+          updatedFormData.estimated_hours = roundedHours.toString();
+        }
+      }
+    }
+
+    setFormData(updatedFormData);
   };
 
   const handleSubmit = async (e) => {
@@ -103,10 +121,22 @@ const EditTaskModal = ({ task, onClose, onUpdate }) => {
                   disabled={task.status === "Completed"}
                 >
                   <option value="Pending">Pending</option>
-                  <option value="Assigned">Assigned</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
+                  {/* Allow Assigned and In Progress tasks to be changed to Pending */}
+                  {(task.status === "Assigned" || task.status === "In Progress" || task.status === "Pending") && (
+                    <>
+                      <option value="Assigned">Assigned</option>
+                      <option value="In Progress">In Progress</option>
+                    </>
+                  )}
+                  {task.status === "Completed" && (
+                    <option value="Completed">Completed</option>
+                  )}
                 </select>
+                {(task.status === "Assigned" || task.status === "In Progress") && (
+                  <small className="info-text">
+                    You can change this task to Pending to reassign to another electrician
+                  </small>
+                )}
               </div>
 
               <div className="form-group">

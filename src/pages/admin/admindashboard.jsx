@@ -1,11 +1,11 @@
-// AdminDashboard.jsx - Main Component
+// admin dashboard - main page for admins
 import { useState, useEffect } from "react";
 import { dashboardService } from "../../services/dashboard";
 import { usersService } from "../../services/users";
 import { authService } from "../../services/auth";
-import "./AdminDashboard.css";
+import "./AdminDashboard.css"; // styles for this component
 
-// Import child components
+// all the child components (maybe too many?)
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Overview from "./components/Overview";
@@ -16,8 +16,8 @@ import PasswordResetModal from "./components/PasswordResetModal";
 import ReportModal from "./components/ReportModal";
 
 const AdminDashboard = () => {
-  // State for active section
-  const [activeSection, setActiveSection] = useState("overview");
+  // which section of the dashboard is currently active
+  const [activeSection, setActiveSection] = useState("overview"); // start with overview
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);

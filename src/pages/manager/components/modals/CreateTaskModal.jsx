@@ -39,11 +39,13 @@ const CreateTaskModal = ({ onClose, onCreate }) => {
       diffMinutes += 24 * 60;
     }
 
-    const hours = (diffMinutes / 60).toFixed(1);
+    const hours = diffMinutes / 60;
+    // Round up to nearest half hour
+    const roundedHours = Math.ceil(hours * 2) / 2;
 
     setFormData((prev) => ({
       ...prev,
-      estimated_hours: hours,
+      estimated_hours: roundedHours.toString(),
     }));
   };
 

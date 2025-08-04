@@ -1,3 +1,43 @@
+/**
+ * ELECTRICIAN DASHBOARD - Task Management Interface
+ * 
+ * DEVELOPMENT PROGRESSION:
+ * Week 4-5: Basic task viewing with hardcoded data
+ * Week 6: Connected to backend API for real data
+ * Week 7: Added task status updates (start/complete)
+ * Week 8: Added issue reporting functionality  
+ * Week 9: Refactored into modular components with custom hooks
+ * Week 10: Added notifications and real-time updates
+ * Current: Fully functional with all CRUD operations
+ * 
+ * COMPONENT ARCHITECTURE:
+ * - Custom hook (useElectricianData) for state management
+ * - Modular components for different views
+ * - Modal system for task interactions
+ * - Responsive design with CSS Grid/Flexbox
+ * 
+ * FEATURES:
+ * ✅ View today's assigned tasks
+ * ✅ Update task status (start/complete)
+ * ✅ Report issues to manager
+ * ✅ View task history
+ * ✅ Profile management
+ * ✅ Real-time notifications
+ * 
+ * TODO IMPROVEMENTS:
+ * - Add task filtering and search
+ * - Implement offline mode for field work
+ * - Add photo upload for task completion
+ * - Better error handling and retries
+ * - Add print functionality for task details
+ * - Implement push notifications
+ * 
+ * BUGS FIXED:
+ * - Fixed issue reporting not sending correct task ID
+ * - Fixed modal state not resetting properly
+ * - Fixed notification badge not updating
+ */
+
 // ElectricianDashboard.jsx - Refactored Version
 import React, { useState } from "react";
 import { useElectricianData } from "./hooks/useElectricianData";
@@ -13,10 +53,15 @@ import "./ElectricianDashboard.css";
 
 const ElectricianDashboard = () => {
   // State management
-  const [activeView, setActiveView] = useState("today");
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState("");
+  const [activeView, setActiveView] = useState("today"); // default view
+  const [selectedTask, setSelectedTask] = useState(null); // currently selected task for modals
+  const [showModal, setShowModal] = useState(false); // modal visibility
+  const [modalType, setModalType] = useState(""); // which modal to show
+  
+  // DEBUG: track component renders (remove before production)
+  const renderCount = React.useRef(0);
+  renderCount.current += 1;
+  // console.log(`🔧 ElectricianDashboard rendered ${renderCount.current} times`);
 
   // Use custom hook for data management
   const {

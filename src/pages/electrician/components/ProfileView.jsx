@@ -51,12 +51,6 @@ const ProfileView = ({ userInfo, userProfile, stats }) => {
             <label>Join Date</label>
             <p>{profile.join_date ? new Date(profile.join_date).toLocaleDateString() : new Date().toLocaleDateString()}</p>
           </div>
-          {profile.rating && (
-            <div className="detail-group">
-              <label>Average Rating</label>
-              <p>⭐ {parseFloat(profile.rating).toFixed(1)}/5.0</p>
-            </div>
-          )}
         </div>
 
         <div className="skills-section">

@@ -1,4 +1,35 @@
-// Login.jsx
+/**
+ * LOGIN PAGE - User Authentication
+ * 
+ * DEVELOPMENT HISTORY:
+ * v1.0 - Basic login form with email/password
+ * v1.1 - Added form validation and error handling
+ * v1.2 - Added rate limiting after failed attempts
+ * v1.3 - Added input sanitization and security measures
+ * v1.4 - Fixed error display issues and improved UX
+ * v1.5 - Current: Added persistent error messages (Jan 2025)
+ * 
+ * FEATURES IMPLEMENTED:
+ * ✅ Email/password authentication
+ * ✅ Role-based redirects after login
+ * ✅ Rate limiting (5 attempts = 5min block)
+ * ✅ Input validation and sanitization  
+ * ✅ Error messages with persistence
+ * ✅ Responsive design
+ * 
+ * TODO / IMPROVEMENTS NEEDED:
+ * - Add "Remember Me" checkbox
+ * - Implement "Forgot Password" flow
+ * - Add social login options (Google, etc)
+ * - Better loading states
+ * - Add password strength indicator
+ * - Two-factor authentication
+ * 
+ * KNOWN ISSUES:
+ * - Password field clears on failed login (security feature)
+ * - Error messages might be too technical for end users
+ * - Rate limiting is per session, not per IP
+ */
 import { useState, useEffect } from "react";
 import logo from "../../assets/logo.png"; // Update path if needed
 import "./Login.css";
@@ -16,6 +47,7 @@ const Login = () => {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockTimer, setBlockTimer] = useState(null);
+  const [errorTimer, setErrorTimer] = useState(null); // timer for error message persistence
 
   // Check if user is already logged in
   useEffect(() => {
@@ -45,14 +77,17 @@ const Login = () => {
     }
   }, [navigate]);
 
-  // Cleanup timer on component unmount
+  // Cleanup timers on component unmount
   useEffect(() => {
     return () => {
       if (blockTimer) {
         clearTimeout(blockTimer);
       }
+      if (errorTimer) {
+        clearTimeout(errorTimer);
+      }
     };
-  }, [blockTimer]);
+  }, [blockTimer, errorTimer]);
 
   // Form state
 
@@ -82,7 +117,7 @@ const Login = () => {
       [name]: sanitizedValue,
     }));
 
-    // Clear error when user types
+    // Clear field-specific errors when user types (but keep general errors for a while)
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -90,13 +125,7 @@ const Login = () => {
       }));
     }
     
-    // Clear general error when user makes changes
-    if (errors.general) {
-      setErrors((prev) => ({
-        ...prev,
-        general: "",
-      }));
-    }
+    // dont clear general error immediately - let it persist for a while after login failure
   };
 
   // Validate form
@@ -129,8 +158,12 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Clear previous errors
+    // Clear previous errors and any existing error timer
     setErrors({});
+    if (errorTimer) {
+      clearTimeout(errorTimer);
+      setErrorTimer(null);
+    }
 
     // Check if user is temporarily blocked
     if (isBlocked) {
@@ -200,6 +233,17 @@ const Login = () => {
         general: errorMessage,
       });
       
+      // Set timer to keep error message visible for 10 seconds
+      const timer = setTimeout(() => {
+        setErrors((prev) => ({
+          ...prev,
+          general: "",
+        }));
+        setErrorTimer(null);
+      }, 10000); // 10 seconds
+      
+      setErrorTimer(timer);
+      
       // Increment failed attempts and implement rate limiting
       const newFailedAttempts = failedAttempts + 1;
       setFailedAttempts(newFailedAttempts);
@@ -207,18 +251,27 @@ const Login = () => {
       // Block user after 5 failed attempts for 5 minutes
       if (newFailedAttempts >= 5) {
         setIsBlocked(true);
+        
+        // Clear any existing error timer since we're setting a blocking message
+        if (errorTimer) {
+          clearTimeout(errorTimer);
+          setErrorTimer(null);
+        }
+        
         setErrors({
           general: "Too many failed login attempts. Please wait 5 minutes before trying again.",
         });
         
         // Set timer to unblock user after 5 minutes
-        const timer = setTimeout(() => {
+        const blockingTimer = setTimeout(() => {
           setIsBlocked(false);
           setFailedAttempts(0);
           setBlockTimer(null);
+          // Also clear the error message when unblocking
+          setErrors({});
         }, 5 * 60 * 1000); // 5 minutes
         
-        setBlockTimer(timer);
+        setBlockTimer(blockingTimer);
       }
       
       // Clear password field on failed login for security

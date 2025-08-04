@@ -96,6 +96,16 @@ const UserModal = ({
       if (errors.phone) {
         setErrors({ ...errors, phone: "" });
       }
+    } else if (name === "full_name") {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+
+      // Clear full name error when user starts typing valid name
+      if (errors.full_name && !validateFullName(value)) {
+        setErrors({ ...errors, full_name: "" });
+      }
     } else {
       setFormData({
         ...formData,
@@ -128,13 +138,42 @@ const UserModal = ({
     });
   };
 
+  // Validate full name
+  const validateFullName = (name) => {
+    if (!name || name.trim() === "") {
+      return "Full name is required";
+    }
+
+    const trimmedName = name.trim();
+
+    // Check if full name contains only numbers
+    if (/^\d+$/.test(trimmedName)) {
+      return "Full name cannot be only numbers";
+    }
+
+    // Check if full name is primarily numbers (more than 70% numbers)
+    const totalChars = trimmedName.replace(/\s/g, "").length;
+    const numberChars = (trimmedName.match(/\d/g) || []).length;
+    if (totalChars > 0 && numberChars / totalChars > 0.7) {
+      return "Full name cannot be primarily numbers";
+    }
+
+    // Check minimum length (at least 2 characters)
+    if (trimmedName.length < 2) {
+      return "Full name must be at least 2 characters long";
+    }
+
+    return null;
+  };
+
   // Validate form
   const validateForm = () => {
     const newErrors = {};
 
-    // Validate required fields
-    if (!formData.full_name || formData.full_name.trim() === "") {
-      newErrors.full_name = "Full name is required";
+    // Validate full name
+    const fullNameError = validateFullName(formData.full_name);
+    if (fullNameError) {
+      newErrors.full_name = fullNameError;
     }
 
     if (modalType === "addUser") {
@@ -157,8 +196,7 @@ const UserModal = ({
     if (!formData.phone || formData.phone.trim() === "") {
       newErrors.phone = "Phone number is required";
     } else if (!validatePhoneNumber(formData.phone)) {
-      newErrors.phone =
-        "Please enter a valid Sri Lankan mobile number (07X XXX XXXX)";
+      newErrors.phone = "Please enter a valid mobile number (07X XXX XXXX)";
     }
 
     setErrors(newErrors);
@@ -422,9 +460,7 @@ const UserModal = ({
                 <label className="form-label">
                   <span className="label-text">Phone Number</span>
                   <span className="label-required">*</span>
-                  <span className="label-hint">
-                    Sri Lankan mobile (07X XXX XXXX)
-                  </span>
+                  <span className="label-hint">(07X XXX XXXX)</span>
                 </label>
                 <div className="input-wrapper">
                   <input
@@ -588,11 +624,7 @@ const UserModal = ({
                     className="skills-select"
                   >
                     {availableCertifications.map((cert) => (
-                      <option
-                        key={cert}
-                        value={cert}
-                        className="skill-option"
-                      >
+                      <option key={cert} value={cert} className="skill-option">
                         {cert}
                       </option>
                     ))}
@@ -602,12 +634,17 @@ const UserModal = ({
                     <div className="skill-tags">
                       {formData.certifications.length > 0 ? (
                         formData.certifications.map((cert) => (
-                          <span key={cert} className="skill-tag certification-tag">
+                          <span
+                            key={cert}
+                            className="skill-tag certification-tag"
+                          >
                             {cert}
                           </span>
                         ))
                       ) : (
-                        <span className="no-skills">No certifications selected</span>
+                        <span className="no-skills">
+                          No certifications selected
+                        </span>
                       )}
                     </div>
                   </div>
